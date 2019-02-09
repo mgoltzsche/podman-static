@@ -101,14 +101,18 @@ RUN set -eux; \
 	done
 
 
-# skopeo
-FROM podmanbuildbase AS skopeo
-ARG SKOPEO_VERSION=v0.1.32
-RUN git clone --branch ${SKOPEO_VERSION} https://github.com/containers/skopeo $GOPATH/src/github.com/containers/skopeo
-WORKDIR $GOPATH/src/github.com/containers/skopeo
-RUN go build -ldflags "-extldflags '-static'" -tags "exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp" \
-	github.com/containers/skopeo/cmd/skopeo && \
-	mv skopeo /usr/local/bin/skopeo
+# slirp4netns
+FROM podmanbuildbase AS slirp4netns
+RUN apk add --update --no-cache git autoconf automake linux-headers
+ARG SLIRP4NETNS_VERSION
+WORKDIR /
+RUN git clone https://github.com/rootless-containers/slirp4netns.git \
+	&& cd slirp4netns \
+	&& git checkout $SLIRP4NETNS_VERSION
+WORKDIR /slirp4netns
+RUN ./autogen.sh \
+	&& LDFLAGS=-static ./configure --prefix=/usr \
+	&& make
 
 
 # fuse-overlay (taken from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
@@ -125,7 +129,6 @@ RUN set -eux; \
 	LDFLAGS="-lpthread" meson --prefix /usr -D default_library=static .. && \
 	ninja && \
 	ninja install
-#LDFLAGS="-lpthread" meson --prefix /usr -D default_library=static .. && \
 ARG FUSEOVERLAYFS_VERSION=v0.3
 RUN git clone --branch ${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs && \
 	cd fuse-overlayfs && \
@@ -137,28 +140,48 @@ USER 1000
 ENTRYPOINT ["/usr/bin/fuse-overlayfs","-f"]
 
 
+# skopeo
+FROM podmanbuildbase AS skopeo
+ARG SKOPEO_VERSION=v0.1.32
+RUN git clone --branch ${SKOPEO_VERSION} https://github.com/containers/skopeo $GOPATH/src/github.com/containers/skopeo
+WORKDIR $GOPATH/src/github.com/containers/skopeo
+RUN go build -ldflags "-extldflags '-static'" -tags "exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp" \
+	github.com/containers/skopeo/cmd/skopeo && \
+	mv skopeo /usr/local/bin/skopeo
+
+
+# buildah
+FROM podmanbuildbase AS buildah
+ARG BUILDAH_VERSION=v1.6
+RUN apk add --no-cache go-md2man
+RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
+WORKDIR $GOPATH/src/github.com/containers/buildah
+RUN make static && mv buildah.static /usr/local/bin/buildah
+
+
 FROM alpine:3.9
-RUN apk add --no-cache ca-certificates iptables ip6tables
+RUN apk add --no-cache ca-certificates iptables ip6tables shadow-uidmap
 COPY --from=runc   /usr/local/bin/runc   /usr/bin/runc
 COPY --from=podman /usr/local/bin/podman /usr/bin/podman
 COPY --from=conmon /usr/libexec/podman/conmon /usr/libexec/podman/conmon
 COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
 COPY --from=skopeo /usr/local/bin/skopeo /usr/bin/skopeo
 COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/bin/fuse-overlayfs
+COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/bin/slirp4netns
+COPY --from=buildah /usr/local/bin/buildah /usr/bin/buildah
 RUN set -eux; \
-	echo 'nobody:65534:65534' > /etc/subuid; \
-	echo 'nobody:65534:65534' > /etc/subgid; \
+	adduser -D podman -h /podman -u 9000; \
+	echo 'podman:900000:65535' > /etc/subuid; \
+	echo 'podman:900000:65535' > /etc/subgid; \
 	ln -s /usr/bin/podman /usr/bin/docker; \
 	mkdir -pm 775 /storage /etc/containers /.config/containers /etc/cni/net.d /.local/share/containers/storage/libpod; \
 	chown root:nobody /storage /.local/share/containers/storage/libpod; \
 	wget -O /etc/containers/registries.conf https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora; \
 	wget -O /etc/containers/policy.json     https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json; \
-	wget -O /etc/cni/net.d/99-bridge.conflist https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist
+	wget -O /etc/cni/net.d/99-bridge.conflist https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist; \
+	podman --help >/dev/null
 COPY ./rootless-storage.conf /.config/containers/storage.conf
+VOLUME /podman/.local/share/containers/storage
+USER podman
 
-
-
-# TODO: add buildah
-
-# docker run -ti --rm --name podman --privileged -u nobody:nobody -v storage:/var/lib/containers/storage runc /bin/sh
-# BUG: https://github.com/containers/libpod/issues/2231
+# BUG: https://github.com/containers/libpod/issues/2231 -> solved by adding /etc/{subuid,subgid} + providing writeable home/storage dir, mounting storage dir for unpriv user
