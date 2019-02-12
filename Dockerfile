@@ -160,28 +160,43 @@ RUN make static && mv buildah.static /usr/local/bin/buildah
 
 
 FROM alpine:3.9
+# Add gosu for easy step-down from root
+ARG GOSU_VERSION=1.11
+RUN set -eux; \
+	apk add --no-cache gnupg; \
+	wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64"; \
+	wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64.asc"; \
+	export GNUPGHOME="$(mktemp -d)"; \
+	gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4; \
+	gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu; \
+	rm -r "$GNUPGHOME" /usr/local/bin/gosu.asc; \
+	chmod +x /usr/local/bin/gosu; \
+	gosu nobody true; \
+	apk del --purge gnupg
+# Install iptables & new-uidmap
 RUN apk add --no-cache ca-certificates iptables ip6tables shadow-uidmap
-COPY --from=runc   /usr/local/bin/runc   /usr/bin/runc
-COPY --from=podman /usr/local/bin/podman /usr/bin/podman
+# Copy binaries from other images
+COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
+COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY --from=conmon /usr/libexec/podman/conmon /usr/libexec/podman/conmon
 COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
-COPY --from=skopeo /usr/local/bin/skopeo /usr/bin/skopeo
-COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/bin/fuse-overlayfs
-COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/bin/slirp4netns
-COPY --from=buildah /usr/local/bin/buildah /usr/bin/buildah
+COPY --from=skopeo /usr/local/bin/skopeo /usr/local/bin/skopeo
+COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
+COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
+COPY --from=buildah /usr/local/bin/buildah /usr/local/bin/buildah
 RUN set -eux; \
 	adduser -D podman -h /podman -u 9000; \
-	echo 'podman:900000:65535' > /etc/subuid; \
-	echo 'podman:900000:65535' > /etc/subgid; \
-	ln -s /usr/bin/podman /usr/bin/docker; \
-	mkdir -pm 775 /storage /etc/containers /.config/containers /etc/cni/net.d /.local/share/containers/storage/libpod; \
-	chown root:nobody /storage /.local/share/containers/storage/libpod; \
+	echo 'podman:900000:65536' > /etc/subuid; \
+	echo 'podman:900000:65536' > /etc/subgid; \
+	ln -s /usr/local/bin/podman /usr/bin/docker; \
+	mkdir -pm 775 /etc/containers /podman/.config/containers /etc/cni/net.d /podman/.local/share/containers/storage/libpod; \
+	chown -R root:podman /podman; \
 	wget -O /etc/containers/registries.conf https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora; \
 	wget -O /etc/containers/policy.json     https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json; \
 	wget -O /etc/cni/net.d/99-bridge.conflist https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist; \
 	podman --help >/dev/null
-COPY ./rootless-storage.conf /.config/containers/storage.conf
+COPY entrypoint.sh /
+ENTRYPOINT [ "/entrypoint.sh" ]
 VOLUME /podman/.local/share/containers/storage
-USER podman
-
-# BUG: https://github.com/containers/libpod/issues/2231 -> solved by adding /etc/{subuid,subgid} + providing writeable home/storage dir, mounting storage dir for unpriv user
+WORKDIR /podman
+ENV HOME=/podman

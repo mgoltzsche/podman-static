@@ -5,12 +5,12 @@ set -eux
 while [ $# -gt 0 ]; do
 	case "$1" in
 		build)
-			docker build --force-rm -t podman .
+			docker build --force-rm -t mgoltzsche/podman .
 		;;
 		run)
-			mkdir -p storage
-			chown 9000:9000 storage
-			docker run -ti --rm --name podman --privileged -v "`pwd`/storage":/podman/.local/share/containers/storage podman /bin/sh
+			docker run -ti --rm --name podman --privileged \
+				-v "`pwd`/storage":/podman/.local/share/containers/storage \
+				mgoltzsche/podman /bin/sh
 		;;
 	esac
 	shift
