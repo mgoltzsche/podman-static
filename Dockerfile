@@ -104,7 +104,7 @@ RUN set -eux; \
 # slirp4netns
 FROM podmanbuildbase AS slirp4netns
 RUN apk add --update --no-cache git autoconf automake linux-headers
-ARG SLIRP4NETNS_VERSION
+ARG SLIRP4NETNS_VERSION=v0.3.0
 WORKDIR /
 RUN git clone https://github.com/rootless-containers/slirp4netns.git \
 	&& cd slirp4netns \
