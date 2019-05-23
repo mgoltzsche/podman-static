@@ -24,3 +24,10 @@ the entrypoint script to change the storage volume mount point's
 ```
 docker run --privileged mgoltzsche/podman docker run alpine:3.9 echo hello from nested podman container
 ```
+
+
+## Local image build & run
+
+```
+./make.sh build run
+```
