@@ -15,14 +15,15 @@ RUN set -eux; \
 FROM golang:1.12-alpine3.9 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
-	glib-dev glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
+	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
 	libseccomp-dev libselinux-dev ostree-dev openssl iptables bash \
 	go-md2man
 
 
 # podman
+# TODO: add systemd support
 FROM podmanbuildbase AS podman
-ARG PODMAN_VERSION=v1.3.1
+ARG PODMAN_VERSION=v1.3.2
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
@@ -32,15 +33,15 @@ RUN set -eux; \
 
 
 # conmon
+# TODO: add systemd support
 FROM podmanbuildbase AS conmon
-# HINT: conmon 1.14.1 causes https://github.com/containers/libpod/issues/3024
-ARG CRIO_VERSION=v1.13.7
-WORKDIR $GOPATH
-RUN git clone --branch ${CRIO_VERSION} https://github.com/kubernetes-sigs/cri-o $GOPATH/src/github.com/kubernetes-sigs/cri-o
-WORKDIR $GOPATH/src/github.com/kubernetes-sigs/cri-o
-RUN set -eux \
-	&& make CFLAGS='-std=c99 -Os -Wall -Wextra -static' \
-	&& install -D -m 755 bin/conmon /usr/libexec/podman/conmon
+ARG CONMON_VERSION=v0.2.0
+RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
+WORKDIR /conmon
+RUN set -eux; \
+	rm /usr/lib/libglib-2.0.so* /usr/lib/libintl.so*; \
+	make CFLAGS='-std=c99 -Os -Wall -Wextra -Werror -static'; \
+	install -D -m 755 bin/conmon /usr/libexec/podman/conmon
 
 
 # CNI plugins
@@ -64,35 +65,34 @@ ARG SLIRP4NETNS_VERSION=v0.3.0
 WORKDIR /
 RUN git clone --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
-RUN ./autogen.sh \
-	&& LDFLAGS=-static ./configure --prefix=/usr \
-	&& make
-
-
-# fuse-overlay (taken from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
-FROM fedora:29 AS fuse-overlayfs
-WORKDIR /build
-RUN dnf update -y && \
-	dnf install -y git make automake autoconf gcc glibc-static meson ninja-build
-ARG LIBFUSE_VERSION=fuse-3.5.0
-RUN git clone --branch=${LIBFUSE_VERSION} https://github.com/libfuse/libfuse
-WORKDIR libfuse
 RUN set -eux; \
-	mkdir build && \
-	cd build && \
-	LDFLAGS="-lpthread" meson --prefix /usr -D default_library=static .. && \
-	ninja && \
-	ninja install
-ARG FUSEOVERLAYFS_VERSION=v0.3
-RUN git clone --branch ${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs && \
-	cd fuse-overlayfs && \
-	sh autogen.sh && \
-	LIBS="-ldl" LDFLAGS="-static" ./configure --prefix /usr && \
-	make && \
-	make install
-USER 1000
-ENTRYPOINT ["/usr/bin/fuse-overlayfs","-f"]
+	./autogen.sh; \
+	LDFLAGS=-static ./configure --prefix=/usr; \
+	make
 
+# fuse-overlay (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
+FROM podmanbuildbase AS fuse-overlayfs
+RUN apk add --update --no-cache automake autoconf meson ninja clang eudev-dev
+ARG LIBFUSE_VERSION=fuse-3.5.0
+RUN git clone --branch=${LIBFUSE_VERSION} https://github.com/libfuse/libfuse /libfuse
+WORKDIR /libfuse
+RUN set -eux; \
+	mkdir build; \
+	cd build; \
+	LDFLAGS="-lpthread" meson --prefix /usr -D default_library=static ..; \
+	ninja; \
+	ninja install
+# v0.3 + musl compat fix
+ARG FUSEOVERLAYFS_VERSION=2cbd1c4a2d3ab06c4e39276363c74c6a9c62c0fe
+RUN set -eux; \
+	git clone https://github.com/containers/fuse-overlayfs /fuse-overlayfs; \
+	cd /fuse-overlayfs; \
+	git checkout "${FUSEOVERLAYFS_VERSION}"; \
+	sh autogen.sh; \
+	LIBS="-ldl" LDFLAGS="-static" ./configure --prefix /usr; \
+	make; \
+	make install; \
+	fuse-overlayfs --help >/dev/null
 
 # skopeo
 FROM podmanbuildbase AS skopeo
@@ -133,10 +133,10 @@ COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY --from=conmon /usr/libexec/podman/conmon /usr/libexec/podman/conmon
 COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
-COPY --from=skopeo /usr/local/bin/skopeo /usr/local/bin/skopeo
 COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=buildah /usr/local/bin/buildah /usr/local/bin/buildah
+COPY --from=skopeo /usr/local/bin/skopeo /usr/local/bin/skopeo
 RUN set -eux; \
 	adduser -D podman -h /podman -u 9000; \
 	echo 'podman:900000:65536' > /etc/subuid; \
@@ -147,7 +147,11 @@ RUN set -eux; \
 	wget -O /etc/containers/registries.conf https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora; \
 	wget -O /etc/containers/policy.json     https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json; \
 	wget -O /etc/cni/net.d/99-bridge.conflist https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist; \
-	podman --help >/dev/null
+	runc --help >/dev/null; \
+	podman --help >/dev/null; \
+	/usr/libexec/podman/conmon --help >/dev/null; \
+	slirp4netns --help >/dev/null; \
+	fuse-overlayfs --help >/dev/null;
 COPY entrypoint.sh /
 ENTRYPOINT [ "/entrypoint.sh" ]
 VOLUME /podman/.local/share/containers/storage
