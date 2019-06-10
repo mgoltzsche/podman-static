@@ -23,10 +23,12 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman
 # TODO: add systemd support
 FROM podmanbuildbase AS podman
-ARG PODMAN_VERSION=v1.3.2
+ARG PODMAN_VERSION=v1.4.0
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
+# Patch for musl (https://github.com/containers/libpod/issues/3284)
+RUN sed -i '/#include <stdlib.h>/a#include <sys/types.h>' pkg/rootless/rootless_linux.go && cat pkg/rootless/rootless_linux.go | head -n30
 RUN set -eux; \
 	make LDFLAGS="-w -extldflags '-static'" BUILDTAGS='seccomp selinux varlink exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
 	mv bin/podman /usr/local/bin/podman
@@ -83,7 +85,7 @@ RUN set -eux; \
 	ninja; \
 	ninja install
 # v0.3 + musl compat fix
-ARG FUSEOVERLAYFS_VERSION=2cbd1c4a2d3ab06c4e39276363c74c6a9c62c0fe
+ARG FUSEOVERLAYFS_VERSION=8d92da63a9128d4a2fde86d5c1ee5b3cf3486d9e
 RUN set -eux; \
 	git clone https://github.com/containers/fuse-overlayfs /fuse-overlayfs; \
 	cd /fuse-overlayfs; \
@@ -106,7 +108,7 @@ RUN go build -ldflags "-extldflags '-static'" -tags "exclude_graphdriver_devicem
 
 # buildah
 FROM podmanbuildbase AS buildah
-ARG BUILDAH_VERSION=v1.8.1
+ARG BUILDAH_VERSION=v1.8.3
 RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
 WORKDIR $GOPATH/src/github.com/containers/buildah
 RUN make static && mv buildah.static /usr/local/bin/buildah

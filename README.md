@@ -16,7 +16,9 @@ Containers must be run as `--privileged`.
 The container process is still started with the root user to allow
 the entrypoint script to change the storage volume mount point's
 (`/podman/.local/share/containers/storage`) owner to the unprivileged
-`podman` user.
+`podman` user.  
+
+Please note that this podman build does not provide systemd support.
 
 
 ## Usage example
