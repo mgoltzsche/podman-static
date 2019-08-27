@@ -1,5 +1,5 @@
 # runc
-FROM golang:alpine3.10 AS runc
+FROM docker.io/library/golang:alpine3.10 AS runc
 ARG RUNC_VERSION=v1.0.0-rc8
 RUN set -eux; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev make git bash; \
@@ -8,11 +8,12 @@ RUN set -eux; \
 	make static BUILDTAGS='seccomp selinux ambient'; \
 	mv runc /usr/local/bin/runc; \
 	rm -rf $GOPATH/src/github.com/opencontainers/runc; \
-	apk del --purge .build-deps
+	apk del --purge .build-deps; \
+	[ "$(ldd /usr/local/bin/runc | wc -l)" -eq 0 ] || (ldd /usr/local/bin/runc; false)
 
 
 # podman build base
-FROM golang:1.12-alpine3.10 AS podmanbuildbase
+FROM docker.io/library/golang:1.12-alpine3.9 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -31,8 +32,9 @@ RUN make install.tools
 # Patch for musl (https://github.com/containers/libpod/issues/3284)
 RUN sed -i '/#include <stdlib.h>/a#include <sys/types.h>' pkg/rootless/rootless_linux.go && cat pkg/rootless/rootless_linux.go | head -n30
 RUN set -eux; \
-	make LDFLAGS="-w -extldflags '-static'" BUILDTAGS='seccomp selinux varlink exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
-	mv bin/podman /usr/local/bin/podman
+	make LDFLAGS="-s -w -extldflags '-static'" BUILDTAGS='seccomp selinux varlink exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
+	mv bin/podman /usr/local/bin/podman; \
+	[ "$(ldd /usr/local/bin/podman | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman; false)
 
 
 # conmon
@@ -42,9 +44,11 @@ ARG CONMON_VERSION=v2.0.0
 RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -eux; \
-    rm /usr/lib/libglib-2.0.so* /usr/lib/libintl.so*; \
-	make CFLAGS='-std=c99 -Os -Wall -Wextra -Werror -static'; \
-	make podman
+    # NOTE: on alpine:3.10 (podmanbuildbase) conmon is not linked statically somehow
+	make PKG_CONFIG='pkg-config --static' CFLAGS='-std=c99 -Os -Wall -Wextra -Werror -static' LDFLAGS='-static'; \
+	make podman; \
+	/usr/local/libexec/podman/conmon --help >/dev/null; \
+	[ "$(ldd /usr/local/libexec/podman/conmon | grep -Ev '^\s+ldd \(0x[0-9a-f]+\)$' | wc -l)" -eq 0 ] || (ldd /usr/local/libexec/podman/conmon; false)
 
 
 # CNI plugins
@@ -96,7 +100,8 @@ RUN set -eux; \
 	LIBS="-ldl" LDFLAGS="-static" ./configure --prefix /usr; \
 	make; \
 	make install; \
-	fuse-overlayfs --help >/dev/null
+	fuse-overlayfs --help >/dev/null; \
+	[ "$(ldd /usr/bin/fuse-overlayfs | grep -Ev '^\s+ldd \(0x[0-9a-f]+\)$' | wc -l)" -eq 0 ] || (ldd /usr/bin/fuse-overlayfs; false)
 
 
 # buildah
@@ -107,7 +112,7 @@ WORKDIR $GOPATH/src/github.com/containers/buildah
 RUN make static && mv buildah.static /usr/local/bin/buildah
 
 
-FROM alpine:3.10
+FROM docker.io/library/alpine:3.10
 # Add gosu for easy step-down from root
 ARG GOSU_VERSION=1.11
 RUN set -eux; \

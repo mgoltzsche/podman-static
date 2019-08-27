@@ -21,10 +21,12 @@ while [ $# -gt 0 ]; do
 				${IMAGE} \
 				docker run --rm alpine:3.10 wget -O /dev/null http://example.org
 			echo TEST BUILDAH AS UNPRIVILEGED USER
-			docker run -ti --rm --name podman --privileged \
+			docker run -ti --rm --name podman --privileged -u 100000:100000 --entrypoint /bin/sh \
 				-v "`pwd`/storage-user":/podman/.local/share/containers/storage \
 				${IMAGE} \
-				buildah from alpine:3.10
+				-c 'set -e; CTR="$(buildah from docker.io/library/alpine:3.10)";
+					buildah config --cmd "echo hello world" "$CTR";
+					buildah commit "$CTR" registry-test:latest'
 		;;
 		run)
 			docker run -ti --rm --name podman --privileged \
