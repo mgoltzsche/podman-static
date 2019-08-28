@@ -60,7 +60,8 @@ RUN set -eux; \
 	mv "/tmp/plugins-${CNI_VERSION}" "${GOPATH}/src/github.com/containernetworking/plugins"; \
 	for TYPE in main ipam meta; do \
 		for CNIPLUGIN in `ls ${GOPATH}/src/github.com/containernetworking/plugins/plugins/$TYPE`; do \
-			go build -o /usr/libexec/cni/$CNIPLUGIN -ldflags "-extldflags '-static'" github.com/containernetworking/plugins/plugins/$TYPE/$CNIPLUGIN; \
+			CGO_ENABLED=0 go build -o /usr/libexec/cni/$CNIPLUGIN -ldflags "-s -w -extldflags '-static'" github.com/containernetworking/plugins/plugins/$TYPE/$CNIPLUGIN; \
+			[ "$(ldd /usr/libexec/cni/$CNIPLUGIN | grep -Ev '^\s+ldd \(0x[0-9a-f]+\)$' | wc -l)" -eq 0 ] || (ldd /usr/libexec/cni/$CNIPLUGIN; false); \
 		done \
 	done
 
