@@ -11,17 +11,17 @@ while [ $# -gt 0 ]; do
 		;;
 		test)
 			echo TEST PODMAN AS ROOT '(using CNI)'
-			docker run --rm --name podman --privileged --entrypoint /bin/sh \
+			docker run --rm --privileged --entrypoint /bin/sh \
 				-v "`pwd`/storage-root":/var/lib/containers/storage \
 				${IMAGE} \
 				-c 'podman run --cgroup-manager=cgroupfs --rm alpine:3.10 wget -O /dev/null http://example.org'
 			echo TEST PODMAN AS UNPRIVILEGED USER '(using fuse-overlayfs & slirp4netns)'
-			docker run -ti --rm --name podman --privileged \
+			docker run -ti --rm --privileged \
 				-v "`pwd`/storage-user":/podman/.local/share/containers/storage \
 				${IMAGE} \
 				docker run --rm alpine:3.10 wget -O /dev/null http://example.org
 			echo TEST BUILDAH AS UNPRIVILEGED USER
-			docker run -ti --rm --name podman --privileged -u 100000:100000 --entrypoint /bin/sh \
+			docker run -ti --rm --privileged -u 100000:100000 --entrypoint /bin/sh \
 				-v "`pwd`/storage-user":/podman/.local/share/containers/storage \
 				${IMAGE} \
 				-c 'set -e; CTR="$(buildah from docker.io/library/alpine:3.10)";

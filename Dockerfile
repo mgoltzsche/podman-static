@@ -13,7 +13,7 @@ RUN set -eux; \
 
 
 # podman build base
-FROM docker.io/library/golang:1.12-alpine3.9 AS podmanbuildbase
+FROM docker.io/library/golang:1.12-alpine3.10 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -25,7 +25,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # TODO: add systemd support
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v1.5.1
+ARG PODMAN_VERSION=v1.6.0
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
@@ -40,27 +40,22 @@ RUN set -eux; \
 # conmon
 # TODO: add systemd support
 FROM podmanbuildbase AS conmon
-ARG CONMON_VERSION=v2.0.0
+ARG CONMON_VERSION=v2.0.1
 RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -eux; \
-    # NOTE: on alpine:3.10 (podmanbuildbase) conmon is not linked statically somehow
-	make PKG_CONFIG='pkg-config --static' CFLAGS='-std=c99 -Os -Wall -Wextra -Werror -static' LDFLAGS='-static'; \
-	make podman; \
-	/usr/local/libexec/podman/conmon --help >/dev/null; \
-	[ "$(ldd /usr/local/libexec/podman/conmon | grep -Ev '^\s+ldd \(0x[0-9a-f]+\)$' | wc -l)" -eq 0 ] || (ldd /usr/local/libexec/podman/conmon; false)
-
+	make static; \
+	bin/conmon --help >/dev/null
 
 # CNI plugins
 FROM podmanbuildbase AS cniplugins
-ARG CNI_VERSION=0.7.5
-RUN set -eux; \
-	mkdir -p "${GOPATH}/src/github.com/containernetworking"; \
-	wget -O - "https://github.com/containernetworking/plugins/archive/v${CNI_VERSION}.tar.gz" | tar -xzf - -C /tmp; \
-	mv "/tmp/plugins-${CNI_VERSION}" "${GOPATH}/src/github.com/containernetworking/plugins"; \
+ARG CNI_PLUGIN_VERSION=v0.8.2
+RUN git clone --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
+WORKDIR /go/src/github.com/containernetworking/plugins
+RUN set -ex; \
 	for TYPE in main ipam meta; do \
-		for CNIPLUGIN in `ls ${GOPATH}/src/github.com/containernetworking/plugins/plugins/$TYPE`; do \
-			CGO_ENABLED=0 go build -o /usr/libexec/cni/$CNIPLUGIN -ldflags "-s -w -extldflags '-static'" github.com/containernetworking/plugins/plugins/$TYPE/$CNIPLUGIN; \
+		for CNIPLUGIN in `ls plugins/$TYPE | grep -v windows`; do \
+			CGO_ENABLED=0 go build -o /usr/libexec/cni/$CNIPLUGIN -ldflags "-s -w -extldflags '-static'" ./plugins/$TYPE/$CNIPLUGIN; \
 			[ "$(ldd /usr/libexec/cni/$CNIPLUGIN | grep -Ev '^\s+ldd \(0x[0-9a-f]+\)$' | wc -l)" -eq 0 ] || (ldd /usr/libexec/cni/$CNIPLUGIN; false); \
 		done \
 	done
@@ -68,8 +63,8 @@ RUN set -eux; \
 
 # slirp4netns
 FROM podmanbuildbase AS slirp4netns
-RUN apk add --update --no-cache git autoconf automake linux-headers
-ARG SLIRP4NETNS_VERSION=v0.3.2
+RUN apk add --update --no-cache git autoconf automake linux-headers libcap-static libcap-dev
+ARG SLIRP4NETNS_VERSION=v0.4.1
 WORKDIR /
 RUN git clone --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
@@ -81,7 +76,7 @@ RUN set -eux; \
 # fuse-overlay (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
 RUN apk add --update --no-cache automake autoconf meson ninja clang g++ eudev-dev
-ARG LIBFUSE_VERSION=fuse-3.6.2
+ARG LIBFUSE_VERSION=fuse-3.7.0
 RUN git clone --branch=${LIBFUSE_VERSION} https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -eux; \
@@ -92,29 +87,27 @@ RUN set -eux; \
 	ninja; \
 	ninja install; \
 	fusermount3 -V
-ARG FUSEOVERLAYFS_VERSION=v0.4.1
+ARG FUSEOVERLAYFS_VERSION=v0.6.4
+RUN git clone --branch=${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs /fuse-overlayfs
+WORKDIR /fuse-overlayfs
 RUN set -eux; \
-	git clone https://github.com/containers/fuse-overlayfs /fuse-overlayfs; \
-	cd /fuse-overlayfs; \
-	git checkout "${FUSEOVERLAYFS_VERSION}"; \
 	sh autogen.sh; \
 	LIBS="-ldl" LDFLAGS="-static" ./configure --prefix /usr; \
 	make; \
 	make install; \
-	fuse-overlayfs --help >/dev/null; \
-	[ "$(ldd /usr/bin/fuse-overlayfs | grep -Ev '^\s+ldd \(0x[0-9a-f]+\)$' | wc -l)" -eq 0 ] || (ldd /usr/bin/fuse-overlayfs; false)
-
+	fuse-overlayfs --help >/dev/null
 
 # buildah
 FROM podmanbuildbase AS buildah
-ARG BUILDAH_VERSION=v1.10.1
+ARG BUILDAH_VERSION=v1.11.3
 RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
 WORKDIR $GOPATH/src/github.com/containers/buildah
 RUN make static && mv buildah.static /usr/local/bin/buildah
 
 
+# gosu (easy step-down from root)
 FROM docker.io/library/alpine:3.10
-# Add gosu for easy step-down from root
+LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 ARG GOSU_VERSION=1.11
 RUN set -eux; \
 	apk add --no-cache gnupg; \
@@ -132,14 +125,14 @@ RUN apk add --no-cache ca-certificates iptables ip6tables shadow-uidmap
 # Copy binaries from other images
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
-COPY --from=conmon /usr/local/libexec/podman/conmon /usr/libexec/podman/conmon
+COPY --from=podman /go/src/github.com/containers/libpod/cni/87-podman-bridge.conflist /etc/cni/net.d/
+COPY --from=conmon /conmon/bin/conmon /usr/libexec/podman/conmon
 COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
 COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
 COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=buildah /usr/local/bin/buildah /usr/local/bin/buildah
 RUN set -eux; \
-	PODMAN_VERSION="$(podman --version | sed 's/podman version //')"; \
 	adduser -D podman -h /podman -u 100000; \
 	echo 'podman:100001:65536' > /etc/subuid; \
 	echo 'podman:100001:65536' > /etc/subgid; \
@@ -148,7 +141,6 @@ RUN set -eux; \
 	chown -R root:podman /podman; \
 	wget -O /etc/containers/registries.conf https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora; \
 	wget -O /etc/containers/policy.json     https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json; \
-	wget -O /etc/cni/net.d/99-bridge.conflist https://raw.githubusercontent.com/containers/libpod/v$PODMAN_VERSION/cni/87-podman-bridge.conflist; \
 	runc --help >/dev/null; \
 	podman --help >/dev/null; \
 	/usr/libexec/podman/conmon --help >/dev/null; \
