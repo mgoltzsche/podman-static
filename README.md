@@ -4,32 +4,37 @@ This image provides an easy way to try out podman and a base for
 nested containerization scenarios where the child container should
 run as unprivileged user.
 
-The alpine-based image contains the following statically linked binaries:
+The alpine-based image contains the following statically linked binaries
+_(without systemd support)_:
 * [podman](https://github.com/containers/libpod)
 * [runc](https://github.com/opencontainers/runc/)
-* [conmon](https://github.com/kubernetes-sigs/cri-o)
+* [conmon](https://github.com/containers/conmon)
 * [fuse-overlayfs](https://github.com/containers/fuse-overlayfs)
 * [slirp4netns](https://github.com/rootless-containers/slirp4netns)
 * [buildah](https://github.com/containers/buildah)
 
-Containers must be run as `--privileged`.
-The container process is still started with the root user to allow
-the entrypoint script to change the storage volume mount point's
-(`/podman/.local/share/containers/storage`) owner to the unprivileged
-`podman` user.  
 
-Please note that this podman build does not provide systemd support.
+Containers need to be `--privileged`.  
+
+
+Before the entrypoint script runs the provided command as unprivileged
+user `podman` (100000) it does some workarounds:
+* Change the owner of the storage volume mount point
+  (`/podman/.local/share/containers/storage`) to the unprivileged
+  `podman` user.
+* Create cgroup from `/proc/1/cgroup` within `/sys/fs/cgroup` if it does
+  not exist because inside the container this cgroup is the cgroup root.
 
 
 ## Usage example
 
 ```
-docker run --privileged mgoltzsche/podman docker run alpine:3.9 echo hello from nested podman container
+docker run --privileged mgoltzsche/podman:latest docker run alpine:latest echo hello from podman
 ```
 
 
-## Local image build & run
+## Local build, test & run
 
 ```
-./make.sh build run
+./make.sh build test run
 ```

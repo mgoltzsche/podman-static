@@ -1,6 +1,6 @@
 # runc
 FROM docker.io/library/golang:alpine3.10 AS runc
-ARG RUNC_VERSION=v1.0.0-rc8
+ARG RUNC_VERSION=v1.0.0-rc9
 RUN set -eux; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev make git bash; \
 	git clone --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
@@ -25,14 +25,12 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # TODO: add systemd support
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v1.6.0
+ARG PODMAN_VERSION=v1.6.2
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
-# Patch for musl (https://github.com/containers/libpod/issues/3284)
-RUN sed -i '/#include <stdlib.h>/a#include <sys/types.h>' pkg/rootless/rootless_linux.go && cat pkg/rootless/rootless_linux.go | head -n30
 RUN set -eux; \
-	make LDFLAGS="-s -w -extldflags '-static'" BUILDTAGS='seccomp selinux varlink exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
+	make LDFLAGS="-s -w -extldflags '-static'" BUILDTAGS='seccomp selinux apparmor varlink exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
 	mv bin/podman /usr/local/bin/podman; \
 	[ "$(ldd /usr/local/bin/podman | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman; false)
 
@@ -64,7 +62,7 @@ RUN set -ex; \
 # slirp4netns
 FROM podmanbuildbase AS slirp4netns
 RUN apk add --update --no-cache git autoconf automake linux-headers libcap-static libcap-dev
-ARG SLIRP4NETNS_VERSION=v0.4.1
+ARG SLIRP4NETNS_VERSION=v0.4.2
 WORKDIR /
 RUN git clone --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
@@ -72,6 +70,7 @@ RUN set -eux; \
 	./autogen.sh; \
 	LDFLAGS=-static ./configure --prefix=/usr; \
 	make
+
 
 # fuse-overlay (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
@@ -87,7 +86,9 @@ RUN set -eux; \
 	ninja; \
 	ninja install; \
 	fusermount3 -V
-ARG FUSEOVERLAYFS_VERSION=v0.6.4
+# fuse-overlayfs >v0.4.1 causes container start error: error unmounting /podman/.local/share/containers/storage/overlay/845ac1bc84b9bb46fec14fc8fc0ca489ececb171888ed346b69103314c6bad43/merged: invalid argument
+# related issue: https://github.com/containers/fuse-overlayfs/issues/116
+ARG FUSEOVERLAYFS_VERSION=v0.4.1
 RUN git clone --branch=${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -eux; \
@@ -96,6 +97,7 @@ RUN set -eux; \
 	make; \
 	make install; \
 	fuse-overlayfs --help >/dev/null
+
 
 # buildah
 FROM podmanbuildbase AS buildah
@@ -137,7 +139,7 @@ RUN set -eux; \
 	echo 'podman:100001:65536' > /etc/subuid; \
 	echo 'podman:100001:65536' > /etc/subgid; \
 	ln -s /usr/local/bin/podman /usr/bin/docker; \
-	mkdir -pm 775 /etc/containers /podman/.config/containers /etc/cni/net.d /podman/.local/share/containers/storage/libpod; \
+	mkdir -pm 775 /etc/containers /podman/.config/containers /etc/cni/net.d /podman/.local/share/containers/storage; \
 	chown -R root:podman /podman; \
 	wget -O /etc/containers/registries.conf https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora; \
 	wget -O /etc/containers/policy.json     https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json; \
