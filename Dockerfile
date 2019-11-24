@@ -25,7 +25,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # TODO: add systemd support
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v1.6.2
+ARG PODMAN_VERSION=v1.6.3
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
@@ -38,7 +38,7 @@ RUN set -eux; \
 # conmon
 # TODO: add systemd support
 FROM podmanbuildbase AS conmon
-ARG CONMON_VERSION=v2.0.1
+ARG CONMON_VERSION=v2.0.3
 RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -eux; \
@@ -75,7 +75,7 @@ RUN set -eux; \
 # fuse-overlay (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
 RUN apk add --update --no-cache automake autoconf meson ninja clang g++ eudev-dev
-ARG LIBFUSE_VERSION=fuse-3.7.0
+ARG LIBFUSE_VERSION=fuse-3.8.0
 RUN git clone --branch=${LIBFUSE_VERSION} https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -eux; \
@@ -89,11 +89,13 @@ RUN set -eux; \
 # fuse-overlayfs >v0.4.1 causes container start error: error unmounting /podman/.local/share/containers/storage/overlay/845ac1bc84b9bb46fec14fc8fc0ca489ececb171888ed346b69103314c6bad43/merged: invalid argument
 # related issue: https://github.com/containers/fuse-overlayfs/issues/116
 ARG FUSEOVERLAYFS_VERSION=v0.4.1
+#ARG FUSEOVERLAYFS_VERSION=v0.7
 RUN git clone --branch=${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -eux; \
 	sh autogen.sh; \
 	LIBS="-ldl" LDFLAGS="-static" ./configure --prefix /usr; \
+	#sed -Ei -e 's/^#include <error.h>$/#include <err.h>/' -e 's/error \(EXIT_FAILURE, [^,]+,/err (EXIT_FAILURE,/g' plugin-manager.c; \
 	make; \
 	make install; \
 	fuse-overlayfs --help >/dev/null
@@ -101,7 +103,7 @@ RUN set -eux; \
 
 # buildah
 FROM podmanbuildbase AS buildah
-ARG BUILDAH_VERSION=v1.11.3
+ARG BUILDAH_VERSION=v1.11.5
 RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
 WORKDIR $GOPATH/src/github.com/containers/buildah
 RUN make static && mv buildah.static /usr/local/bin/buildah
@@ -141,6 +143,8 @@ RUN set -eux; \
 	ln -s /usr/local/bin/podman /usr/bin/docker; \
 	mkdir -pm 775 /etc/containers /podman/.config/containers /etc/cni/net.d /podman/.local/share/containers/storage; \
 	chown -R root:podman /podman; \
+	echo 'cgroup_manager = "cgroupfs"' > /etc/containers/libpod.conf; \
+	cp /etc/containers/libpod.conf /podman/.config/containers/; \
 	wget -O /etc/containers/registries.conf https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora; \
 	wget -O /etc/containers/policy.json     https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json; \
 	runc --help >/dev/null; \
