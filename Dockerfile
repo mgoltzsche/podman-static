@@ -25,7 +25,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # TODO: add systemd support
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v1.6.3
+ARG PODMAN_VERSION=v1.6.4
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
@@ -38,7 +38,7 @@ RUN set -eux; \
 # conmon
 # TODO: add systemd support
 FROM podmanbuildbase AS conmon
-ARG CONMON_VERSION=v2.0.3
+ARG CONMON_VERSION=v2.0.5
 RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -eux; \
@@ -47,7 +47,7 @@ RUN set -eux; \
 
 # CNI plugins
 FROM podmanbuildbase AS cniplugins
-ARG CNI_PLUGIN_VERSION=v0.8.2
+ARG CNI_PLUGIN_VERSION=v0.8.3
 RUN git clone --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
 RUN set -ex; \
@@ -89,13 +89,11 @@ RUN set -eux; \
 # fuse-overlayfs >v0.4.1 causes container start error: error unmounting /podman/.local/share/containers/storage/overlay/845ac1bc84b9bb46fec14fc8fc0ca489ececb171888ed346b69103314c6bad43/merged: invalid argument
 # related issue: https://github.com/containers/fuse-overlayfs/issues/116
 ARG FUSEOVERLAYFS_VERSION=v0.4.1
-#ARG FUSEOVERLAYFS_VERSION=v0.7
 RUN git clone --branch=${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -eux; \
 	sh autogen.sh; \
 	LIBS="-ldl" LDFLAGS="-static" ./configure --prefix /usr; \
-	#sed -Ei -e 's/^#include <error.h>$/#include <err.h>/' -e 's/error \(EXIT_FAILURE, [^,]+,/err (EXIT_FAILURE,/g' plugin-manager.c; \
 	make; \
 	make install; \
 	fuse-overlayfs --help >/dev/null
@@ -103,7 +101,7 @@ RUN set -eux; \
 
 # buildah
 FROM podmanbuildbase AS buildah
-ARG BUILDAH_VERSION=v1.11.5
+ARG BUILDAH_VERSION=v1.11.6
 RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
 WORKDIR $GOPATH/src/github.com/containers/buildah
 RUN make static && mv buildah.static /usr/local/bin/buildah
