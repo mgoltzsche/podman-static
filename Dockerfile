@@ -1,5 +1,5 @@
 # runc
-FROM docker.io/library/golang:alpine3.10 AS runc
+FROM docker.io/library/golang:1.13-alpine3.10 AS runc
 ARG RUNC_VERSION=v1.0.0-rc9
 RUN set -eux; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev make git bash; \
@@ -13,7 +13,7 @@ RUN set -eux; \
 
 
 # podman build base
-FROM docker.io/library/golang:1.12-alpine3.10 AS podmanbuildbase
+FROM docker.io/library/golang:1.13-alpine3.10 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -25,20 +25,21 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # TODO: add systemd support
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v1.6.4
+ARG PODMAN_VERSION=v1.7.0
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
 RUN set -eux; \
-	make LDFLAGS="-s -w -extldflags '-static'" BUILDTAGS='seccomp selinux apparmor varlink exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
+	make LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='seccomp selinux apparmor varlink exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
 	mv bin/podman /usr/local/bin/podman; \
+	podman --help >/dev/null; \
 	[ "$(ldd /usr/local/bin/podman | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman; false)
 
 
 # conmon
 # TODO: add systemd support
 FROM podmanbuildbase AS conmon
-ARG CONMON_VERSION=v2.0.5
+ARG CONMON_VERSION=v2.0.7
 RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -eux; \
@@ -47,7 +48,7 @@ RUN set -eux; \
 
 # CNI plugins
 FROM podmanbuildbase AS cniplugins
-ARG CNI_PLUGIN_VERSION=v0.8.3
+ARG CNI_PLUGIN_VERSION=v0.8.4
 RUN git clone --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
 RUN set -ex; \
@@ -62,7 +63,7 @@ RUN set -ex; \
 # slirp4netns
 FROM podmanbuildbase AS slirp4netns
 RUN apk add --update --no-cache git autoconf automake linux-headers libcap-static libcap-dev
-ARG SLIRP4NETNS_VERSION=v0.4.2
+ARG SLIRP4NETNS_VERSION=v0.4.3
 WORKDIR /
 RUN git clone --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
@@ -101,7 +102,7 @@ RUN set -eux; \
 
 # buildah
 FROM podmanbuildbase AS buildah
-ARG BUILDAH_VERSION=v1.11.6
+ARG BUILDAH_VERSION=v1.12.0
 RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
 WORKDIR $GOPATH/src/github.com/containers/buildah
 RUN make static && mv buildah.static /usr/local/bin/buildah
