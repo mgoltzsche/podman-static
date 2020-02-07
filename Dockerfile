@@ -1,6 +1,6 @@
 # runc
 FROM docker.io/library/golang:1.13-alpine3.10 AS runc
-ARG RUNC_VERSION=v1.0.0-rc9
+ARG RUNC_VERSION=v1.0.0-rc10
 RUN set -eux; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev make git bash; \
 	git clone --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
@@ -25,12 +25,12 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # TODO: add systemd support
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v1.7.0
+ARG PODMAN_VERSION=v1.8.0
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
 RUN set -eux; \
-	make LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='seccomp selinux apparmor varlink exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
+	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
 	mv bin/podman /usr/local/bin/podman; \
 	podman --help >/dev/null; \
 	[ "$(ldd /usr/local/bin/podman | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman; false)
@@ -48,7 +48,7 @@ RUN set -eux; \
 
 # CNI plugins
 FROM podmanbuildbase AS cniplugins
-ARG CNI_PLUGIN_VERSION=v0.8.4
+ARG CNI_PLUGIN_VERSION=v0.8.5
 RUN git clone --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
 RUN set -ex; \
@@ -76,7 +76,7 @@ RUN set -eux; \
 # fuse-overlay (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
 RUN apk add --update --no-cache automake autoconf meson ninja clang g++ eudev-dev
-ARG LIBFUSE_VERSION=fuse-3.8.0
+ARG LIBFUSE_VERSION=fuse-3.9.0
 RUN git clone --branch=${LIBFUSE_VERSION} https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -eux; \
@@ -102,7 +102,7 @@ RUN set -eux; \
 
 # buildah
 FROM podmanbuildbase AS buildah
-ARG BUILDAH_VERSION=v1.12.0
+ARG BUILDAH_VERSION=v1.14.0
 RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
 WORKDIR $GOPATH/src/github.com/containers/buildah
 RUN make static && mv buildah.static /usr/local/bin/buildah
