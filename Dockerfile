@@ -30,7 +30,8 @@ RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod sr
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
 RUN set -eux; \
-	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
+	sed -Ei 's/"GNU\/Linux"/"Linux"/g' Makefile; \
+	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='seccomp selinux apparmor varlink exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
 	mv bin/podman /usr/local/bin/podman; \
 	podman --help >/dev/null; \
 	[ "$(ldd /usr/local/bin/podman | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman; false)
