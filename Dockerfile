@@ -25,7 +25,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # TODO: add systemd support
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v1.8.1
+ARG PODMAN_VERSION=v1.8.2
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
@@ -39,7 +39,7 @@ RUN set -eux; \
 # conmon
 # TODO: add systemd support
 FROM podmanbuildbase AS conmon
-ARG CONMON_VERSION=v2.0.11
+ARG CONMON_VERSION=v2.0.14
 RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -eux; \
@@ -63,7 +63,7 @@ RUN set -ex; \
 # slirp4netns
 FROM podmanbuildbase AS slirp4netns
 RUN apk add --update --no-cache git autoconf automake linux-headers libcap-static libcap-dev
-ARG SLIRP4NETNS_VERSION=v0.4.3
+ARG SLIRP4NETNS_VERSION=v0.4.4
 WORKDIR /
 RUN git clone --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
@@ -102,7 +102,7 @@ RUN set -eux; \
 
 # buildah
 FROM podmanbuildbase AS buildah
-ARG BUILDAH_VERSION=v1.14.2
+ARG BUILDAH_VERSION=v1.14.5
 RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
 WORKDIR $GOPATH/src/github.com/containers/buildah
 RUN make static && mv buildah.static /usr/local/bin/buildah
