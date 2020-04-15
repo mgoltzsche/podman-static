@@ -25,7 +25,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # TODO: add systemd support
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v1.8.2
+ARG PODMAN_VERSION=v1.9.0
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
@@ -39,7 +39,7 @@ RUN set -eux; \
 # conmon
 # TODO: add systemd support
 FROM podmanbuildbase AS conmon
-ARG CONMON_VERSION=v2.0.14
+ARG CONMON_VERSION=v2.0.15
 RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -eux; \
@@ -75,15 +75,14 @@ RUN set -eux; \
 
 # fuse-overlay (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
-RUN apk add --update --no-cache automake autoconf meson ninja clang g++ eudev-dev
-ARG LIBFUSE_VERSION=fuse-3.9.0
+RUN apk add --update --no-cache automake autoconf meson ninja clang g++ eudev-dev fuse3-dev
+ARG LIBFUSE_VERSION=fuse-3.9.1
 RUN git clone --branch=${LIBFUSE_VERSION} https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -eux; \
 	mkdir build; \
 	cd build; \
-	LDFLAGS="-lpthread" meson --prefix /usr -D default_library=static .. || (cat /libfuse/build/meson-logs/meson-log.txt; false); \
-	sed -Ei '/^#include <err.h>/a #include <limits.h>' ../example/passthrough_hp.cc; \
+	LDFLAGS="-lpthread -s -w -static" meson --prefix /usr -D default_library=static .. || (cat /libfuse/build/meson-logs/meson-log.txt; false); \
 	ninja; \
 	ninja install; \
 	fusermount3 -V
@@ -102,7 +101,7 @@ RUN set -eux; \
 
 # buildah
 FROM podmanbuildbase AS buildah
-ARG BUILDAH_VERSION=v1.14.5
+ARG BUILDAH_VERSION=v1.14.8
 RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
 WORKDIR $GOPATH/src/github.com/containers/buildah
 RUN make static && mv buildah.static /usr/local/bin/buildah
