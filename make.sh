@@ -10,8 +10,8 @@ while [ $# -gt 0 ]; do
 			docker build --force-rm -t ${IMAGE} .
 		;;
 		test)
-			SERVER="echo \$'#!/bin/sh\ntimeout 1 cat - >/dev/null; echo -e \\\"HTTP/1.1 200 OK\n\nup\\\"' > /tmp/healthy && chmod +x /tmp/healthy && timeout 3 nc -l -p 8080 -e /tmp/healthy"
-			PODMAN_PORTMAPPING_TEST='podman run --cgroup-manager=cgroupfs -p 8081:8080 --rm alpine:3.11 /bin/sh -c "'"$SERVER"'" & sleep 3; wget -O - localhost:8081'
+			SERVER="echo \$'#!/bin/sh\ntimeout 1 cat - >/dev/null; echo -e \\\"HTTP/1.1 200 OK\n\nup\\\"' > /tmp/healthy && chmod +x /tmp/healthy && timeout 7 nc -l -p 8080 -e /tmp/healthy"
+			PODMAN_PORTMAPPING_TEST='podman run --cgroup-manager=cgroupfs -p 8081:8080 --rm alpine:3.11 /bin/sh -c "'"$SERVER"'" & sleep 4; wget -O - localhost:8081'
 			echo TEST PODMAN AS ROOT '(using CNI)'
 			docker run --rm --privileged --entrypoint /bin/sh \
 				-v "`pwd`/storage-root":/var/lib/containers/storage \
