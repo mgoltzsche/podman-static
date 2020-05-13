@@ -25,7 +25,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # TODO: add systemd support
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v1.9.0
+ARG PODMAN_VERSION=v1.9.2
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
@@ -39,7 +39,7 @@ RUN set -eux; \
 # conmon
 # TODO: add systemd support
 FROM podmanbuildbase AS conmon
-ARG CONMON_VERSION=v2.0.15
+ARG CONMON_VERSION=v2.0.16
 RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -eux; \
@@ -63,7 +63,8 @@ RUN set -ex; \
 # slirp4netns
 FROM podmanbuildbase AS slirp4netns
 RUN apk add --update --no-cache git autoconf automake linux-headers libcap-static libcap-dev
-ARG SLIRP4NETNS_VERSION=v0.4.4
+# slirpvnetns v1 requires package slirp which is not available in alpine 3.11 but will be in 3.12
+ARG SLIRP4NETNS_VERSION=v0.4.5
 WORKDIR /
 RUN git clone --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
@@ -88,6 +89,7 @@ RUN set -eux; \
 	fusermount3 -V
 # fuse-overlayfs >v0.4.1 causes container start error: error unmounting /podman/.local/share/containers/storage/overlay/845ac1bc84b9bb46fec14fc8fc0ca489ececb171888ed346b69103314c6bad43/merged: invalid argument
 # related issue: https://github.com/containers/fuse-overlayfs/issues/116
+# ... fixed now but causes https://github.com/containers/fuse-overlayfs/issues/174
 ARG FUSEOVERLAYFS_VERSION=v0.4.1
 RUN git clone --branch=${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
@@ -101,7 +103,7 @@ RUN set -eux; \
 
 # buildah
 FROM podmanbuildbase AS buildah
-ARG BUILDAH_VERSION=v1.14.8
+ARG BUILDAH_VERSION=v1.14.9
 RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
 WORKDIR $GOPATH/src/github.com/containers/buildah
 RUN make static && mv buildah.static /usr/local/bin/buildah
