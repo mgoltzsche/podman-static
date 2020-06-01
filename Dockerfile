@@ -25,7 +25,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # TODO: add systemd support
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v1.9.2
+ARG PODMAN_VERSION=v1.9.3
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
@@ -39,7 +39,7 @@ RUN set -eux; \
 # conmon
 # TODO: add systemd support
 FROM podmanbuildbase AS conmon
-ARG CONMON_VERSION=v2.0.16
+ARG CONMON_VERSION=v2.0.17
 RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -eux; \
@@ -63,7 +63,7 @@ RUN set -ex; \
 # slirp4netns
 FROM podmanbuildbase AS slirp4netns
 RUN apk add --update --no-cache git autoconf automake linux-headers libcap-static libcap-dev
-# slirpvnetns v1 requires package slirp which is not available in alpine 3.11 but will be in 3.12
+# slirpvnetns v1 requires package slirp which is not available in alpine 3.11 but will be in 3.13
 ARG SLIRP4NETNS_VERSION=v0.4.5
 WORKDIR /
 RUN git clone --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
