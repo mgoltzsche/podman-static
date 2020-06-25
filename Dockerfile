@@ -1,5 +1,5 @@
 # runc
-FROM docker.io/library/golang:1.14-alpine3.11 AS runc
+FROM docker.io/library/golang:1.14-alpine3.12 AS runc
 ARG RUNC_VERSION=v1.0.0-rc10
 RUN set -eux; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev make git bash; \
@@ -13,7 +13,7 @@ RUN set -eux; \
 
 
 # podman build base
-FROM docker.io/library/golang:1.14-alpine3.11 AS podmanbuildbase
+FROM docker.io/library/golang:1.14-alpine3.12 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -25,7 +25,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # TODO: add systemd support
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v1.9.3
+ARG PODMAN_VERSION=v2.0.0
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
@@ -110,7 +110,7 @@ RUN make static && mv buildah.static /usr/local/bin/buildah
 
 
 # gosu (easy step-down from root)
-FROM docker.io/library/alpine:3.11
+FROM docker.io/library/alpine:3.12
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 ARG GOSU_VERSION=1.11
 RUN set -eux; \
