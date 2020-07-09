@@ -25,7 +25,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # TODO: add systemd support
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v2.0.0
+ARG PODMAN_VERSION=v2.0.2
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
