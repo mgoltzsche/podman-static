@@ -26,8 +26,8 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
 ARG PODMAN_VERSION=v2.0.4
-RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
-WORKDIR $GOPATH/src/github.com/containers/libpod
+RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
+WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
 RUN set -eux; \
 	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='seccomp selinux apparmor varlink exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
@@ -130,7 +130,7 @@ RUN apk add --no-cache ca-certificates iptables ip6tables shadow-uidmap
 # Copy binaries from other images
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
-COPY --from=podman /go/src/github.com/containers/libpod/cni/87-podman-bridge.conflist /etc/cni/net.d/
+COPY --from=podman /go/src/github.com/containers/podman/cni/87-podman-bridge.conflist /etc/cni/net.d/
 COPY --from=conmon /conmon/bin/conmon /usr/libexec/podman/conmon
 COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
 COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
@@ -144,8 +144,8 @@ RUN set -eux; \
 	ln -s /usr/local/bin/podman /usr/bin/docker; \
 	mkdir -pm 775 /etc/containers /podman/.config/containers /etc/cni/net.d /podman/.local/share/containers/storage; \
 	chown -R root:podman /podman; \
-	echo 'cgroup_manager = "cgroupfs"' > /etc/containers/libpod.conf; \
-	cp /etc/containers/libpod.conf /podman/.config/containers/; \
+	printf '[engine]\ncgroup_manager="cgroupfs"' > /etc/containers/containers.conf; \
+	cp /etc/containers/containers.conf /podman/.config/containers/; \
 	wget -O /etc/containers/registries.conf https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora; \
 	wget -O /etc/containers/policy.json     https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json; \
 	runc --help >/dev/null; \
