@@ -1,17 +1,3 @@
-# runc
-FROM docker.io/library/golang:1.14-alpine3.12 AS runc
-ARG RUNC_VERSION=v1.0.0-rc91
-RUN set -eux; \
-	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev make git bash; \
-	git clone --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
-	cd src/github.com/opencontainers/runc; \
-	make static BUILDTAGS='seccomp selinux ambient'; \
-	mv runc /usr/local/bin/runc; \
-	rm -rf $GOPATH/src/github.com/opencontainers/runc; \
-	apk del --purge .build-deps; \
-	[ "$(ldd /usr/local/bin/runc | wc -l)" -eq 0 ] || (ldd /usr/local/bin/runc; false)
-
-
 # podman build base
 FROM docker.io/library/golang:1.14-alpine3.12 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
@@ -108,7 +94,7 @@ WORKDIR $GOPATH/src/github.com/containers/buildah
 RUN make static && mv buildah.static /usr/local/bin/buildah
 
 
-# Download gosu
+# Download gosu and crun
 FROM docker.io/library/alpine:3.12 AS downloads
 RUN apk add --no-cache gnupg
 ARG GOSU_VERSION=1.11
@@ -119,6 +105,14 @@ RUN set -eux; \
 	gpg --batch --verify /tmp/gosu.asc /usr/local/bin/gosu; \
 	chmod +x /usr/local/bin/gosu; \
 	gosu nobody true
+ARG CRUN_VERSION=0.14.1
+RUN set -ex; \
+	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-0.14.1-static-x86_64; \
+	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-0.14.1-static-x86_64.asc; \
+	gpg --keyserver ha.pool.sks-keyservers.net --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
+	gpg --batch --verify /tmp/crun.asc /usr/local/bin/crun; \
+	chmod +x /usr/local/bin/crun; \
+	crun --help >/dev/null
 
 
 # Build final image
@@ -136,7 +130,7 @@ COPY --from=buildah /usr/local/bin/buildah /usr/local/bin/buildah
 COPY --from=podman /go/src/github.com/containers/podman/cni/87-podman-bridge.conflist /etc/cni/net.d/
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY --from=downloads /usr/local/bin/gosu /usr/local/bin/gosu
-COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
+COPY --from=downloads /usr/local/bin/crun /usr/local/bin/crun
 COPY containers.conf /etc/containers/containers.conf
 RUN set -eux; \
 	adduser -D podman -h /podman -u 100000; \
@@ -148,7 +142,6 @@ RUN set -eux; \
 	chown -R podman:podman /podman; \
 	wget -O /etc/containers/registries.conf https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora; \
 	wget -O /etc/containers/policy.json     https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json; \
-	runc --help >/dev/null; \
 	podman --help >/dev/null; \
 	/usr/libexec/podman/conmon --help >/dev/null; \
 	slirp4netns --help >/dev/null; \

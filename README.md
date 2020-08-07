@@ -7,7 +7,7 @@ run as unprivileged user.
 The alpine-based image contains the following statically linked binaries
 _(without systemd support)_:
 * [podman](https://github.com/containers/libpod)
-* [runc](https://github.com/opencontainers/runc/)
+* [crun](https://github.com/containers/crun)
 * [conmon](https://github.com/containers/conmon)
 * [fuse-overlayfs](https://github.com/containers/fuse-overlayfs)
 * [slirp4netns](https://github.com/rootless-containers/slirp4netns)
