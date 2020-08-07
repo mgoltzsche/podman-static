@@ -47,17 +47,17 @@ RUN set -eux; \
 	make static; \
 	bin/conmon --help >/dev/null
 
+
 # CNI plugins
 FROM podmanbuildbase AS cniplugins
 ARG CNI_PLUGIN_VERSION=v0.8.5
 RUN git clone --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
 RUN set -ex; \
-	for TYPE in main ipam meta; do \
-		for CNIPLUGIN in `ls plugins/$TYPE | grep -v windows`; do \
-			CGO_ENABLED=0 go build -o /usr/libexec/cni/$CNIPLUGIN -ldflags "-s -w -extldflags '-static'" ./plugins/$TYPE/$CNIPLUGIN; \
-			[ "$(ldd /usr/libexec/cni/$CNIPLUGIN | grep -Ev '^\s+ldd \(0x[0-9a-f]+\)$' | wc -l)" -eq 0 ] || (ldd /usr/libexec/cni/$CNIPLUGIN; false); \
-		done \
+	for PLUGINDIR in plugins/ipam/host-local plugins/main/loopback plugins/main/bridge plugins/meta/portmap plugins/meta/firewall plugins/meta/tuning; do \
+		PLUGINBIN=/usr/libexec/cni/$(basename $PLUGINDIR); \
+		CGO_ENABLED=0 go build -o $PLUGINBIN -ldflags "-s -w -extldflags '-static'" ./$PLUGINDIR; \
+		[ "$(ldd $PLUGINBIN | grep -Ev '^\s+ldd \(0x[0-9a-f]+\)$' | wc -l)" -eq 0 ] || (ldd $PLUGINBIN; false); \
 	done
 
 
