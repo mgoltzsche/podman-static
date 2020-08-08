@@ -137,15 +137,15 @@ COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
 COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=buildah /usr/local/bin/buildah /usr/local/bin/buildah
+COPY containers.conf /etc/containers/containers.conf
 RUN set -eux; \
 	adduser -D podman -h /podman -u 100000; \
 	echo 'podman:100001:65536' > /etc/subuid; \
 	echo 'podman:100001:65536' > /etc/subgid; \
 	ln -s /usr/local/bin/podman /usr/bin/docker; \
 	mkdir -pm 775 /etc/containers /podman/.config/containers /etc/cni/net.d /podman/.local/share/containers/storage; \
-	chown -R root:podman /podman; \
-	printf '[engine]\ncgroup_manager="cgroupfs"' > /etc/containers/containers.conf; \
 	cp /etc/containers/containers.conf /podman/.config/containers/; \
+	chown -R podman:podman /podman; \
 	wget -O /etc/containers/registries.conf https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora; \
 	wget -O /etc/containers/policy.json     https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json; \
 	runc --help >/dev/null; \
@@ -154,7 +154,8 @@ RUN set -eux; \
 	slirp4netns --help >/dev/null; \
 	fuse-overlayfs --help >/dev/null;
 COPY entrypoint.sh /
-ENTRYPOINT [ "/entrypoint.sh" ]
 VOLUME /podman/.local/share/containers/storage
 WORKDIR /podman
 ENV HOME=/podman
+ENTRYPOINT [ "/entrypoint.sh" ]
+CMD [ "sh" ]
