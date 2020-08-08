@@ -108,25 +108,25 @@ WORKDIR $GOPATH/src/github.com/containers/buildah
 RUN make static && mv buildah.static /usr/local/bin/buildah
 
 
-# gosu (easy step-down from root)
-FROM docker.io/library/alpine:3.12
-LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
+# Download gosu
+FROM docker.io/library/alpine:3.12 AS downloads
+RUN apk add --no-cache gnupg
 ARG GOSU_VERSION=1.11
 RUN set -eux; \
-	apk add --no-cache gnupg; \
 	wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64"; \
-	wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64.asc"; \
-	export GNUPGHOME="$(mktemp -d)"; \
+	wget -O /tmp/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64.asc"; \
 	gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4; \
-	gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu; \
-	rm -rf "$GNUPGHOME" /usr/local/bin/gosu.asc; \
+	gpg --batch --verify /tmp/gosu.asc /usr/local/bin/gosu; \
 	chmod +x /usr/local/bin/gosu; \
-	gosu nobody true; \
-	apk del --purge gnupg
+	gosu nobody true
+
+
+# Build final image
+FROM docker.io/library/alpine:3.12
+LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 # Install iptables & new-uidmap
 RUN apk add --no-cache ca-certificates iptables ip6tables shadow-uidmap
 # Copy binaries from other images
-COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY --from=podman /go/src/github.com/containers/podman/cni/87-podman-bridge.conflist /etc/cni/net.d/
 COPY --from=conmon /conmon/bin/conmon /usr/libexec/podman/conmon
@@ -135,6 +135,8 @@ COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
 COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=buildah /usr/local/bin/buildah /usr/local/bin/buildah
+COPY --from=downloads /usr/local/bin/gosu /usr/local/bin/gosu
+COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 COPY containers.conf /etc/containers/containers.conf
 RUN set -eux; \
 	adduser -D podman -h /podman -u 100000; \
