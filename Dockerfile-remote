@@ -1,0 +1,26 @@
+# podman build base
+FROM docker.io/library/golang:1.14-alpine3.12 AS podmanbuildbase
+RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
+	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
+	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
+	libseccomp-dev libselinux-dev ostree-dev openssl iptables bash \
+	go-md2man
+
+
+# podman remote
+FROM podmanbuildbase AS podman-remote
+RUN apk add --update --no-cache curl
+ARG PODMAN_VERSION=v2.0.4
+RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
+WORKDIR $GOPATH/src/github.com/containers/podman
+RUN make install.tools
+RUN set -eux; \
+	make bin/podman-remote LDFLAGS_PODMAN="-s -w -extldflags '-static'"; \
+	mv bin/podman-remote /usr/local/bin/; \
+	ln -s podman-remote /usr/local/bin/podman; \
+	ln -s podman-remote /usr/local/bin/docker; \
+	podman --help >/dev/null; \
+	[ "$(ldd /usr/local/bin/podman-remote | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman-remote; false)
+
+FROM alpine:3.12
+COPY --from=podman-remote /usr/local/bin /usr/local/bin

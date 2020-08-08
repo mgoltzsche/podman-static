@@ -17,13 +17,10 @@ _(without systemd support)_:
 Containers need to be `--privileged`.  
 
 
-Before the entrypoint script runs the provided command as unprivileged
-user `podman` (100000) it does some workarounds:
-* Change the owner of the storage volume mount point
-  (`/podman/.local/share/containers/storage`) to the unprivileged
-  `podman` user.
-* Create cgroup from `/proc/1/cgroup` within `/sys/fs/cgroup` if it does
-  not exist because inside the container this cgroup is the cgroup root.
+As a workaround for docker the entrypoint script changes the owner of
+the storage volume mount point (`/podman/.local/share/containers/storage`)
+to the unprivileged `podman` user (100000)
+before it runs the provided command.
 
 
 ## Usage example
