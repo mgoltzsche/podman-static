@@ -127,14 +127,14 @@ LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 # Install iptables & new-uidmap
 RUN apk add --no-cache ca-certificates iptables ip6tables shadow-uidmap
 # Copy binaries from other images
-COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
-COPY --from=podman /go/src/github.com/containers/podman/cni/87-podman-bridge.conflist /etc/cni/net.d/
 COPY --from=conmon /conmon/bin/conmon /usr/libexec/podman/conmon
 COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
 COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
 COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=buildah /usr/local/bin/buildah /usr/local/bin/buildah
+COPY --from=podman /go/src/github.com/containers/podman/cni/87-podman-bridge.conflist /etc/cni/net.d/
+COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY --from=downloads /usr/local/bin/gosu /usr/local/bin/gosu
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 COPY containers.conf /etc/containers/containers.conf

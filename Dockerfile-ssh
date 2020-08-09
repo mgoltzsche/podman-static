@@ -1,0 +1,5 @@
+ARG BASEIMAGE
+FROM ${BASEIMAGE}
+RUN apk add --update --no-cache openssh
+COPY sshd_config /podman/.ssh/
+RUN chown -R podman:podman /podman/.ssh

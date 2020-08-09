@@ -16,7 +16,7 @@ WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
 RUN set -eux; \
 	make bin/podman-remote LDFLAGS_PODMAN="-s -w -extldflags '-static'"; \
-	mv bin/podman-remote /usr/local/bin/; \
+	mv bin/podman-remote /usr/local/bin/podman-remote; \
 	ln -s podman-remote /usr/local/bin/podman; \
 	ln -s podman-remote /usr/local/bin/docker; \
 	podman --help >/dev/null; \

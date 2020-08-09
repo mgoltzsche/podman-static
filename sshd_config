@@ -1,0 +1,30 @@
+AddressFamily any
+ListenAddress 0.0.0.0
+Port 2222
+PidFile /tmp/sshd.pid
+HostKey /podman/.ssh/ssh_host_rsa_key
+HostKey /podman/.ssh/ssh_host_ecdsa_key
+#HostKey /podman/.ssh/ssh_host_ed25519_key
+AuthorizedKeysFile	.ssh/authorized_keys
+PasswordAuthentication no
+PubkeyAuthentication yes
+PermitRootLogin no
+LoginGraceTime 2m
+MaxAuthTries 6
+MaxSessions 10
+
+UseDNS no
+AllowAgentForwarding no
+AllowTcpForwarding yes
+GatewayPorts no
+X11Forwarding no
+PermitTTY no
+PrintMotd no
+Banner none
+
+Match User podman
+	X11Forwarding no
+	AllowTcpForwarding yes
+	PermitTTY no
+	# TODO:
+	#ForceCommand podman ???
