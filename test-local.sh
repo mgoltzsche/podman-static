@@ -45,3 +45,15 @@ docker run -ti --rm --privileged -u 100000:100000 --entrypoint /bin/sh \
 			FROM docker.io/library/alpine:3.12
 			CMD ["/bin/echo", "hello world"]
 		EOF'
+# TODO: fix build (requires newer fuse-overlayfs?!), error: fuse-overlayfs: upperdir not specified
+# (happens since newer buildah version is used since the podman binary contains buildah now)
+#echo TEST PODMAN BUILD DOCKERFILE AS UNPRIVILEGED USER '(using buildah)'
+#docker run -ti --rm --privileged -u 100000:100000 --entrypoint /bin/sh \
+#	-v "`pwd`/storage-user":/podman/.local/share/containers/storage \
+#	"${IMAGE}" \
+#	-c 'set -e;
+#		podman build -t podmantestimage -f - . <<-EOF
+#			FROM docker.io/library/alpine:3.12
+#			RUN echo hello world > /hello
+#			CMD ["/bin/cat", "/hello"]
+#		EOF'

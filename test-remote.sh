@@ -19,6 +19,7 @@ docker run --rm --network=host -v "$(pwd)/test:/build" \
 	podman --url=tcp://$ADDRESS run alpine:3.12 echo hello from remote container
 
 # ATTENTION: remote `podman build` and volume mounts don't work (using podman 2.0.4)
+# Also podman remote doesn't handle errors properly: https://github.com/containers/podman/issues/7137
 #docker run --rm --network=host \
 #	-v "`pwd`/test:/build" \
 #	"${PODMAN_REMOTE_IMAGE}" \

@@ -101,6 +101,7 @@ RUN set -eux; \
 
 
 # buildah
+# TODO: remove buildah binary from image since it is contained within podman binary since v2
 FROM podmanbuildbase AS buildah
 ARG BUILDAH_VERSION=v1.14.10
 RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
