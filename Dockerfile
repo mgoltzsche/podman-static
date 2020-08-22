@@ -89,25 +89,18 @@ RUN set -eux; \
 # fuse-overlayfs >v0.4.1 causes container start error: error unmounting /podman/.local/share/containers/storage/overlay/845ac1bc84b9bb46fec14fc8fc0ca489ececb171888ed346b69103314c6bad43/merged: invalid argument
 # related issue: https://github.com/containers/fuse-overlayfs/issues/116
 # ... fixed now but causes https://github.com/containers/fuse-overlayfs/issues/174
-ARG FUSEOVERLAYFS_VERSION=v0.4.1
-RUN git clone --branch=${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs /fuse-overlayfs
+#ARG FUSEOVERLAYFS_VERSION=v0.4.1
+#RUN git clone --branch=${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs /fuse-overlayfs
+# Using https://github.com/yaamai/fuse-overlayfs/commit/3733cfcb6936df685e62c5917493223aab700f5c
+RUN git clone https://github.com/yaamai/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -eux; \
+	git checkout 3733cfcb6936df685e62c5917493223aab700f5c; \
 	sh autogen.sh; \
 	LIBS="-ldl" LDFLAGS="-static" ./configure --prefix /usr; \
 	make; \
 	make install; \
 	fuse-overlayfs --help >/dev/null
-
-
-# buildah
-# TODO: remove buildah binary from image since it is contained within podman binary since v2
-FROM podmanbuildbase AS buildah
-ARG BUILDAH_VERSION=v1.14.10
-RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
-WORKDIR $GOPATH/src/github.com/containers/buildah
-RUN make static && mv buildah.static /usr/local/bin/buildah
-
 
 # Download gosu
 FROM docker.io/library/alpine:3.12 AS downloads
@@ -133,7 +126,6 @@ COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
 COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
 COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
-COPY --from=buildah /usr/local/bin/buildah /usr/local/bin/buildah
 COPY --from=podman /go/src/github.com/containers/podman/cni/87-podman-bridge.conflist /etc/cni/net.d/
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY --from=downloads /usr/local/bin/gosu /usr/local/bin/gosu

@@ -29,13 +29,6 @@ docker run -ti --rm --privileged \
 	-v "`pwd`/storage-user":/podman/.local/share/containers/storage \
 	"${IMAGE}" \
 	docker run --rm alpine:3.12 /bin/sh -c 'set -ex; touch /file; chown guest /file; [ $(stat -c %U /file) = guest ]'
-echo TEST BUILDAH AS UNPRIVILEGED USER
-docker run -ti --rm --privileged -u 100000:100000 --entrypoint /bin/sh \
-	-v "`pwd`/storage-user":/podman/.local/share/containers/storage \
-	"${IMAGE}" \
-	-c 'set -e; CTR="$(buildah from docker.io/library/alpine:3.12)";
-		buildah config --cmd "echo hello world" "$CTR";
-		buildah commit "$CTR" buildahtestimage:latest'
 echo TEST PODMAN BUILD DOCKERFILE AS UNPRIVILEGED USER '(using buildah)'
 docker run -ti --rm --privileged -u 100000:100000 --entrypoint /bin/sh \
 	-v "`pwd`/storage-user":/podman/.local/share/containers/storage \
@@ -43,17 +36,6 @@ docker run -ti --rm --privileged -u 100000:100000 --entrypoint /bin/sh \
 	-c 'set -e;
 		podman build -t podmantestimage -f - . <<-EOF
 			FROM docker.io/library/alpine:3.12
-			CMD ["/bin/echo", "hello world"]
+			RUN echo hello world > /hello
+			CMD ["/bin/cat", "/hello"]
 		EOF'
-# TODO: fix build (requires newer fuse-overlayfs?!), error: fuse-overlayfs: upperdir not specified
-# (happens since newer buildah version is used since the podman binary contains buildah now)
-#echo TEST PODMAN BUILD DOCKERFILE AS UNPRIVILEGED USER '(using buildah)'
-#docker run -ti --rm --privileged -u 100000:100000 --entrypoint /bin/sh \
-#	-v "`pwd`/storage-user":/podman/.local/share/containers/storage \
-#	"${IMAGE}" \
-#	-c 'set -e;
-#		podman build -t podmantestimage -f - . <<-EOF
-#			FROM docker.io/library/alpine:3.12
-#			RUN echo hello world > /hello
-#			CMD ["/bin/cat", "/hello"]
-#		EOF'
