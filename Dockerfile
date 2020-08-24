@@ -77,11 +77,9 @@ RUN set -eux; \
 # ... fixed now but causes https://github.com/containers/fuse-overlayfs/issues/174
 #ARG FUSEOVERLAYFS_VERSION=v0.4.1
 #RUN git clone --branch=${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs /fuse-overlayfs
-# Using https://github.com/yaamai/fuse-overlayfs/commit/3733cfcb6936df685e62c5917493223aab700f5c
-RUN git clone https://github.com/yaamai/fuse-overlayfs /fuse-overlayfs
+RUN git clone --branch=fix_alpine_file_exists_at https://github.com/mgoltzsche/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -eux; \
-	git checkout 3733cfcb6936df685e62c5917493223aab700f5c; \
 	sh autogen.sh; \
 	LIBS="-ldl" LDFLAGS="-static" ./configure --prefix /usr; \
 	make; \
