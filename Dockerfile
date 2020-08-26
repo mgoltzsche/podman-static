@@ -61,10 +61,17 @@ RUN set -ex; \
 
 # slirp4netns
 FROM podmanbuildbase AS slirp4netns
-RUN apk add --update --no-cache git autoconf automake linux-headers libcap-static libcap-dev
-# slirpvnetns v1 requires package slirp which is not available in alpine 3.11 but will be in 3.13
-ARG SLIRP4NETNS_VERSION=v0.4.5
 WORKDIR /
+RUN apk add --update --no-cache git autoconf automake linux-headers libcap-static libcap-dev meson ninja
+# Build libslirp
+RUN git clone --branch=v4.3.1 https://gitlab.freedesktop.org/slirp/libslirp.git
+WORKDIR /libslirp
+RUN set -ex; \
+	LDFLAGS="-s -w -static" meson --prefix /usr -D default_library=static build; \
+	ninja -C build install
+# Build slirp4netns
+WORKDIR /
+ARG SLIRP4NETNS_VERSION=v1.1.4
 RUN git clone --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
 RUN set -eux; \
@@ -73,7 +80,7 @@ RUN set -eux; \
 	make
 
 
-# fuse-overlay (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
+# fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
 RUN apk add --update --no-cache automake autoconf meson ninja clang g++ eudev-dev fuse3-dev
 ARG LIBFUSE_VERSION=fuse-3.9.1
@@ -91,11 +98,12 @@ RUN set -eux; \
 # ... fixed now but causes https://github.com/containers/fuse-overlayfs/issues/174
 #ARG FUSEOVERLAYFS_VERSION=v0.4.1
 #RUN git clone --branch=${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs /fuse-overlayfs
-RUN git clone --branch=fix_alpine_file_exists_at https://github.com/mgoltzsche/fuse-overlayfs /fuse-overlayfs
+RUN git clone https://github.com/mgoltzsche/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
+RUN git pull && git checkout b7d0b441de80f60aa437395dd5f524c23acb24a9
 RUN set -eux; \
 	sh autogen.sh; \
-	LIBS="-ldl" LDFLAGS="-static" ./configure --prefix /usr; \
+	LIBS="-ldl" LDFLAGS="-s -w -static" ./configure --prefix /usr; \
 	make; \
 	make install; \
 	fuse-overlayfs --help >/dev/null
@@ -128,7 +136,7 @@ COPY --from=podman /go/src/github.com/containers/podman/cni/87-podman-bridge.con
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY --from=downloads /usr/local/bin/gosu /usr/local/bin/gosu
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
-COPY containers.conf /etc/containers/containers.conf
+COPY containers.conf storage.conf /etc/containers/
 RUN set -eux; \
 	adduser -D podman -h /podman -u 100000; \
 	echo 'podman:100001:65536' > /etc/subuid; \
