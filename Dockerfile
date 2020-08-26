@@ -100,7 +100,7 @@ RUN set -eux; \
 #RUN git clone --branch=${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 RUN git clone https://github.com/mgoltzsche/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
-RUN git pull && git checkout b7d0b441de80f60aa437395dd5f524c23acb24a9
+RUN git pull && git checkout d5b725b6f18a437db66bfc1456d04c3bf658f66a
 RUN set -eux; \
 	sh autogen.sh; \
 	LIBS="-ldl" LDFLAGS="-s -w -static" ./configure --prefix /usr; \
