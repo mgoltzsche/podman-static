@@ -21,7 +21,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	go-md2man
 
 
-# podman
+# podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache curl
 ARG PODMAN_VERSION=v2.0.4
@@ -35,7 +35,7 @@ RUN set -eux; \
 	[ "$(ldd /usr/local/bin/podman | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman; false)
 
 
-# conmon
+# conmon (without systemd support)
 FROM podmanbuildbase AS conmon
 # conmon 2.0.19 cannot be built currently since alpine does not provide nix package yet
 ARG CONMON_VERSION=v2.0.18
@@ -62,9 +62,10 @@ RUN set -ex; \
 # slirp4netns
 FROM podmanbuildbase AS slirp4netns
 WORKDIR /
-RUN apk add --update --no-cache git autoconf automake linux-headers libcap-static libcap-dev meson ninja
+RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev
 # Build libslirp
-RUN git clone --branch=v4.3.1 https://gitlab.freedesktop.org/slirp/libslirp.git
+ARG LIBSLIRP_VERSION=v4.3.1
+RUN git clone --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
 WORKDIR /libslirp
 RUN set -ex; \
 	LDFLAGS="-s -w -static" meson --prefix /usr -D default_library=static build; \
@@ -82,7 +83,7 @@ RUN set -eux; \
 
 # fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
-RUN apk add --update --no-cache automake autoconf meson ninja clang g++ eudev-dev fuse3-dev
+RUN apk add --update --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
 ARG LIBFUSE_VERSION=fuse-3.9.1
 RUN git clone --branch=${LIBFUSE_VERSION} https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
@@ -93,14 +94,12 @@ RUN set -eux; \
 	ninja; \
 	ninja install; \
 	fusermount3 -V
-# fuse-overlayfs >v0.4.1 causes container start error: error unmounting /podman/.local/share/containers/storage/overlay/845ac1bc84b9bb46fec14fc8fc0ca489ececb171888ed346b69103314c6bad43/merged: invalid argument
-# related issue: https://github.com/containers/fuse-overlayfs/issues/116
-# ... fixed now but causes https://github.com/containers/fuse-overlayfs/issues/174
-#ARG FUSEOVERLAYFS_VERSION=v0.4.1
-#RUN git clone --branch=${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs /fuse-overlayfs
-RUN git clone https://github.com/mgoltzsche/fuse-overlayfs /fuse-overlayfs
+# Requires version >1.1.2 with fix for https://github.com/containers/fuse-overlayfs/issues/174
+ARG FUSEOVERLAYFS_VERSION=421c64db788688469a6c41e14dddce22fefc26ed
+RUN git clone https://github.com/containers/fuse-overlayfs /fuse-overlayfs \
+	&& cd /fuse-overlayfs \
+	&& git checkout ${FUSEOVERLAYFS_VERSION}
 WORKDIR /fuse-overlayfs
-RUN git pull && git checkout d5b725b6f18a437db66bfc1456d04c3bf658f66a
 RUN set -eux; \
 	sh autogen.sh; \
 	LIBS="-ldl" LDFLAGS="-s -w -static" ./configure --prefix /usr; \
