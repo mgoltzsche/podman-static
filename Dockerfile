@@ -52,7 +52,7 @@ ARG CNI_PLUGIN_VERSION=v0.8.5
 RUN git clone --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
 RUN set -ex; \
-	for PLUGINDIR in plugins/ipam/host-local plugins/main/loopback plugins/main/bridge plugins/meta/portmap plugins/meta/firewall plugins/meta/tuning; do \
+	for PLUGINDIR in plugins/ipam/host-local plugins/main/loopback plugins/main/bridge plugins/meta/portmap; do \
 		PLUGINBIN=/usr/libexec/cni/$(basename $PLUGINDIR); \
 		CGO_ENABLED=0 go build -o $PLUGINBIN -ldflags "-s -w -extldflags '-static'" ./$PLUGINDIR; \
 		[ "$(ldd $PLUGINBIN | grep -Ev '^\s+ldd \(0x[0-9a-f]+\)$' | wc -l)" -eq 0 ] || (ldd $PLUGINBIN; false); \
@@ -131,10 +131,10 @@ COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
 COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
 COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
-COPY --from=podman /go/src/github.com/containers/podman/cni/87-podman-bridge.conflist /etc/cni/net.d/
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY --from=downloads /usr/local/bin/gosu /usr/local/bin/gosu
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
+COPY cni /etc/cni
 COPY containers.conf storage.conf /etc/containers/
 RUN set -eux; \
 	adduser -D podman -h /podman -u 100000; \
