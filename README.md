@@ -10,7 +10,7 @@ _(without systemd support)_:
 * [conmon](https://github.com/containers/conmon)
 * [fuse-overlayfs](https://github.com/containers/fuse-overlayfs)
 * [slirp4netns](https://github.com/rootless-containers/slirp4netns)
-* [CNI plugins](https://github.com/containernetworking/plugins): loopback, bridge, host-local, portmap, firewall, tuning
+* [CNI plugins](https://github.com/containernetworking/plugins): loopback, bridge, host-local, portmap
 
 Containers need to be `--privileged`.  
 
