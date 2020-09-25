@@ -5,12 +5,13 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
 	libseccomp-dev libselinux-dev ostree-dev openssl iptables bash \
 	go-md2man
+RUN git clone https://github.com/bats-core/bats-core.git && cd bats-core && ./install.sh /usr/local
 
 
-# podman
+# podman (without systemd support)
 FROM podmanbuildbase AS podman
-RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v2.0.4
+RUN apk add --update --no-cache tzdata curl
+ARG PODMAN_VERSION=v2.1.0
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
@@ -21,7 +22,7 @@ RUN set -eux; \
 	[ "$(ldd /usr/local/bin/podman | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman; false)
 
 
-# conmon
+# conmon (without systemd support)
 FROM podmanbuildbase AS conmon
 # conmon 2.0.19 cannot be built currently since alpine does not provide nix package yet
 ARG CONMON_VERSION=v2.0.18
@@ -38,7 +39,7 @@ ARG CNI_PLUGIN_VERSION=v0.8.5
 RUN git clone --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
 RUN set -ex; \
-	for PLUGINDIR in plugins/ipam/host-local plugins/main/loopback plugins/main/bridge plugins/meta/portmap plugins/meta/firewall plugins/meta/tuning; do \
+	for PLUGINDIR in plugins/ipam/host-local plugins/main/loopback plugins/main/bridge plugins/meta/portmap; do \
 		PLUGINBIN=/usr/libexec/cni/$(basename $PLUGINDIR); \
 		CGO_ENABLED=0 go build -o $PLUGINBIN -ldflags "-s -w -extldflags '-static'" ./$PLUGINDIR; \
 		[ "$(ldd $PLUGINBIN | grep -Ev '^\s+ldd \(0x[0-9a-f]+\)$' | wc -l)" -eq 0 ] || (ldd $PLUGINBIN; false); \
@@ -47,10 +48,18 @@ RUN set -ex; \
 
 # slirp4netns
 FROM podmanbuildbase AS slirp4netns
-RUN apk add --update --no-cache git autoconf automake linux-headers libcap-static libcap-dev
-# slirpvnetns v1 requires package slirp which is not available in alpine 3.11 but will be in 3.13
-ARG SLIRP4NETNS_VERSION=v0.4.5
 WORKDIR /
+RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev
+# Build libslirp
+ARG LIBSLIRP_VERSION=v4.3.1
+RUN git clone --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
+WORKDIR /libslirp
+RUN set -ex; \
+	LDFLAGS="-s -w -static" meson --prefix /usr -D default_library=static build; \
+	ninja -C build install
+# Build slirp4netns
+WORKDIR /
+ARG SLIRP4NETNS_VERSION=v1.1.4
 RUN git clone --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
 RUN set -eux; \
@@ -59,9 +68,9 @@ RUN set -eux; \
 	make
 
 
-# fuse-overlay (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
+# fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
-RUN apk add --update --no-cache automake autoconf meson ninja clang g++ eudev-dev fuse3-dev
+RUN apk add --update --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
 ARG LIBFUSE_VERSION=fuse-3.9.1
 RUN git clone --branch=${LIBFUSE_VERSION} https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
@@ -72,16 +81,15 @@ RUN set -eux; \
 	ninja; \
 	ninja install; \
 	fusermount3 -V
-# fuse-overlayfs >v0.4.1 causes container start error: error unmounting /podman/.local/share/containers/storage/overlay/845ac1bc84b9bb46fec14fc8fc0ca489ececb171888ed346b69103314c6bad43/merged: invalid argument
-# related issue: https://github.com/containers/fuse-overlayfs/issues/116
-# ... fixed now but causes https://github.com/containers/fuse-overlayfs/issues/174
-#ARG FUSEOVERLAYFS_VERSION=v0.4.1
-#RUN git clone --branch=${FUSEOVERLAYFS_VERSION} https://github.com/containers/fuse-overlayfs /fuse-overlayfs
-RUN git clone --branch=fix_alpine_file_exists_at https://github.com/mgoltzsche/fuse-overlayfs /fuse-overlayfs
+# Requires version >1.1.2 with fix for https://github.com/containers/fuse-overlayfs/issues/174
+ARG FUSEOVERLAYFS_VERSION=421c64db788688469a6c41e14dddce22fefc26ed
+RUN git clone https://github.com/containers/fuse-overlayfs /fuse-overlayfs \
+	&& cd /fuse-overlayfs \
+	&& git checkout ${FUSEOVERLAYFS_VERSION}
 WORKDIR /fuse-overlayfs
 RUN set -eux; \
 	sh autogen.sh; \
-	LIBS="-ldl" LDFLAGS="-static" ./configure --prefix /usr; \
+	LIBS="-ldl" LDFLAGS="-s -w -static" ./configure --prefix /usr; \
 	make; \
 	make install; \
 	fuse-overlayfs --help >/dev/null
@@ -111,26 +119,26 @@ RUN set -ex; \
 FROM docker.io/library/alpine:3.12
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 # Install iptables & new-uidmap
-RUN apk add --no-cache ca-certificates iptables ip6tables shadow-uidmap
+RUN apk add --no-cache tzdata ca-certificates iptables ip6tables shadow-uidmap
 # Copy binaries from other images
 COPY --from=conmon /conmon/bin/conmon /usr/libexec/podman/conmon
 COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
 COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
 COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
-COPY --from=podman /go/src/github.com/containers/podman/cni/87-podman-bridge.conflist /etc/cni/net.d/
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY --from=downloads /usr/local/bin/gosu /usr/local/bin/gosu
 COPY --from=downloads /usr/local/bin/crun /usr/local/bin/crun
-COPY containers.conf /etc/containers/containers.conf
+COPY cni /etc/cni
+COPY containers.conf storage.conf /etc/containers/
 RUN set -eux; \
 	adduser -D podman -h /podman -u 100000; \
 	echo 'podman:100001:65536' > /etc/subuid; \
 	echo 'podman:100001:65536' > /etc/subgid; \
 	ln -s /usr/local/bin/podman /usr/bin/docker; \
-	mkdir -pm 775 /etc/containers /podman/.config/containers /etc/cni/net.d /podman/.local/share/containers/storage; \
-	cp /etc/containers/containers.conf /podman/.config/containers/; \
+	mkdir -pm 775 /etc/containers /podman /podman/.local/share/containers/storage; \
 	chown -R podman:podman /podman; \
+	chmod 1777 /podman/.local/share/containers/storage; \
 	wget -O /etc/containers/registries.conf https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora; \
 	wget -O /etc/containers/policy.json     https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json; \
 	podman --help >/dev/null; \

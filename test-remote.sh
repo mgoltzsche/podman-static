@@ -10,7 +10,7 @@ PODMAN_CONTAINER="$(docker run -d --rm --privileged --network=host \
 	podman system service -t 0 tcp:$ADDRESS)"
 docker logs -f "$PODMAN_CONTAINER" 2>&1 | sed -E 's/^/podman service: /g' &
 
-sleep 2
+sleep 3
 
 (
 set -e
