@@ -19,12 +19,13 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
 	libseccomp-dev libselinux-dev ostree-dev openssl iptables bash \
 	go-md2man
+RUN git clone https://github.com/bats-core/bats-core.git && cd bats-core && ./install.sh /usr/local
 
 
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
-RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v2.0.4
+RUN apk add --update --no-cache tzdata curl
+ARG PODMAN_VERSION=v2.1.0
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
@@ -124,7 +125,7 @@ RUN set -eux; \
 FROM docker.io/library/alpine:3.12
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 # Install iptables & new-uidmap
-RUN apk add --no-cache ca-certificates iptables ip6tables shadow-uidmap
+RUN apk add --no-cache tzdata ca-certificates iptables ip6tables shadow-uidmap
 # Copy binaries from other images
 COPY --from=conmon /conmon/bin/conmon /usr/libexec/podman/conmon
 COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
