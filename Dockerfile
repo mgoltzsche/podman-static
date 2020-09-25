@@ -142,9 +142,9 @@ RUN set -eux; \
 	echo 'podman:100001:65536' > /etc/subuid; \
 	echo 'podman:100001:65536' > /etc/subgid; \
 	ln -s /usr/local/bin/podman /usr/bin/docker; \
-	mkdir -pm 775 /etc/containers /podman/.config/containers /etc/cni/net.d /podman/.local/share/containers/storage; \
-	cp /etc/containers/containers.conf /podman/.config/containers/; \
+	mkdir -pm 775 /etc/containers /podman /podman/.local/share/containers/storage; \
 	chown -R podman:podman /podman; \
+	chmod 1777 /podman/.local/share/containers/storage; \
 	wget -O /etc/containers/registries.conf https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora; \
 	wget -O /etc/containers/policy.json     https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json; \
 	runc --help >/dev/null; \
