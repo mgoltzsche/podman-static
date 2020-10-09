@@ -86,7 +86,7 @@ RUN set -eux; \
 FROM podmanbuildbase AS fuse-overlayfs
 RUN apk add --update --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
 ARG LIBFUSE_VERSION=fuse-3.9.1
-RUN git clone --branch=${LIBFUSE_VERSION} https://github.com/libfuse/libfuse /libfuse
+RUN git clone --branch=$LIBFUSE_VERSION https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -eux; \
 	mkdir build; \
@@ -95,11 +95,8 @@ RUN set -eux; \
 	ninja; \
 	ninja install; \
 	fusermount3 -V
-# Requires version >1.1.2 with fix for https://github.com/containers/fuse-overlayfs/issues/174
-ARG FUSEOVERLAYFS_VERSION=421c64db788688469a6c41e14dddce22fefc26ed
-RUN git clone https://github.com/containers/fuse-overlayfs /fuse-overlayfs \
-	&& cd /fuse-overlayfs \
-	&& git checkout ${FUSEOVERLAYFS_VERSION}
+ARG FUSEOVERLAYFS_VERSION=v1.2.0
+RUN git clone --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -eux; \
 	sh autogen.sh; \
