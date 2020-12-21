@@ -8,8 +8,8 @@ _(without systemd support)_:
 * [podman](https://github.com/containers/libpod)
 * [runc](https://github.com/opencontainers/runc/)
 * [conmon](https://github.com/containers/conmon)
-* [fuse-overlayfs](https://github.com/containers/fuse-overlayfs)
-* [slirp4netns](https://github.com/rootless-containers/slirp4netns)
+* [fuse-overlayfs](https://github.com/containers/fuse-overlayfs) and [libfuse](https://github.com/libfuse/libfuse)
+* [slirp4netns](https://github.com/rootless-containers/slirp4netns) (with [libslirp](https://gitlab.freedesktop.org/slirp/libslirp))
 * [CNI plugins](https://github.com/containernetworking/plugins): loopback, bridge, host-local, portmap
 
 Containers need to be `--privileged`.  
