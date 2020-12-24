@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    # Publish `master` as Docker `latest` image.
+    branches:
+    - master
+
+    # Publish `v1.2.3` tags as releases.
+    tags:
+    - v*
+
+env:
+  PODMAN_IMAGE: podman
+  PODMAN_ROOTLESS_IMAGE: podman-rootless
+  PODMAN_REMOTE_IMAGE: podman-remote
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Build & Test
+      run: make podman podman-rootless podman-remote test
+
+    - name: Build signed archive
+      run: make signed-tar
+      env:
+        GPG_SIGN_KEY: ${{ secrets.GPG_SIGN_KEY }}
+        GPG_SIGN_KEY_PASSPHRASE: ${{ secrets.GPG_SIGN_KEY_PASSPHRASE }}
+
+    - name: Log into GitHub registry
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+
+    - name: Log into DockerHub registry
+      run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+    - name: Push image
+      run: |
+        set -eu
+
+        GITHUB_IMAGE_REPO=docker.pkg.github.com/${{ github.repository }}/podman
+        GITHUB_IMAGE_REPO=$(echo $GITHUB_IMAGE_REPO | tr '[A-Z]' '[a-z]')
+        DOCKERHUB_IMAGE_REPO=docker.io/mgoltzsche/podman
+
+        # Strip git ref prefix from version
+        TAGS=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+        # Strip "v" prefix from tag name
+        [[ "${{ github.ref }}" == "refs/tags/"* ]] && TAGS=$(echo $TAGS | sed -e 's/^v//')
+        # Expand tags: 1.2.3 -> 1 1.2 1.2.3
+        TAGS="$(echo "$TAGS" | sed -E -e 's/^((([0-9]+)\.[0-9]+)\.[0-9]+)$/\3 \2 \1/')"
+
+        for IMAGE in $PODMAN_REMOTE_IMAGE $PODMAN_IMAGE $PODMAN_ROOTLESS_IMAGE; do
+          TAG_SUFFIX=$(echo $IMAGE | sed -E -e 's/^([^-]+)//')
+          LATEST_TAG="$([ "$TAG_SUFFIX" ] && echo $TAG_SUFFIX | sed -E -e 's/^-//' || echo latest)"
+          [ "$TAGS" == "master" ] && IMAGE_TAGS="$LATEST_TAG" || IMAGE_TAGS="$LATEST_TAG $TAGS"
+          for TAG in $IMAGE_TAGS; do
+            [ "$TAG" = "$LATEST_TAG" ] || TAG="${TAG}${TAG_SUFFIX}"
+
+            # Push to DockerHub
+            echo Push $DOCKERHUB_IMAGE_REPO:$TAG
+            docker tag $IMAGE $DOCKERHUB_IMAGE_REPO:$TAG
+            docker push $DOCKERHUB_IMAGE_REPO:$TAG
+
+            # Push to GitHub registry
+            echo Push $GITHUB_IMAGE_REPO:$TAG
+            docker tag $IMAGE $GITHUB_IMAGE_REPO:$TAG
+            docker push $GITHUB_IMAGE_REPO:$TAG
+          done
+        done
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: true
+
+    - name: Upload Archive Signature
+      id: upload-archive-signature
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./build/podman-linux-amd64.tar.gz.asc
+        asset_name: podman-linux-amd64.tar.gz.asc
+        asset_content_type: application/octet-stream
+
+    - name: Upload Archive
+      id: upload-archive
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./build/podman-linux-amd64.tar.gz
+        asset_name: podman-linux-amd64.tar.gz
+        asset_content_type: application/octet-stream
