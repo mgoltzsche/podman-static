@@ -1,7 +1,7 @@
 # podman binaries and container image ![GitHub workflow badge](https://github.com/mgoltzsche/podman-static/workflows/Release/badge.svg)
 
 This project provides alpine-based podman container image variants and statically linked (rootless) podman binaries for linux-amd64 along with its dependencies _(without systemd support)_:
-* [podman](https://github.com/containers/libpod)
+* [podman](https://github.com/containers/podman)
 * [runc](https://github.com/opencontainers/runc/) or [crun](https://github.com/containers/crun)
 * [conmon](https://github.com/containers/conmon)
 * [fuse-overlayfs](https://github.com/containers/fuse-overlayfs) and [libfuse](https://github.com/libfuse/libfuse)
@@ -11,9 +11,12 @@ This project provides alpine-based podman container image variants and staticall
 ## Container image
 
 The following image tags are supported:
-* `latest`, `<VERSION>` - podman with both rootless and rootful dependencies: runc, conmon, fuse-overlayfs, slirp4netns, CNI plugins.
-* `rootless`, `<VERSION>-rootless` - podman with crun (configured to use host cgroup), fuse-overlayfs, slirp4netns and conmon.
-* `remote`, `<VERSION>-remote` - the podman remote binary.
+
+| Tag | Description |
+| --- | ----------- |
+| `latest`, `<VERSION>` | podman with both rootless and rootful dependencies: runc, conmon, fuse-overlayfs, slirp4netns, CNI plugins. |
+| `rootless`, `<VERSION>-rootless` | podman with crun (configured to use host cgroup), fuse-overlayfs, slirp4netns and conmon. |
+| `remote`, `<VERSION>-remote` | the podman remote binary. |
 
 Please note that, when running podman within a docker container, the docker container needs to be `--privileged`.  
 
