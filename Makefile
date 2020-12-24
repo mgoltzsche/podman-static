@@ -102,7 +102,7 @@ run:
 
 clean:
 	rm -rf build
-	docker run -ti --rm -v "`pwd`/test:/test" alpine:3.12 rm -rf /test/storage
+	docker run --rm -v "`pwd`/test:/test" alpine:3.12 rm -rf /test/storage
 
 run-server: podman-ssh
 	# TODO: make sshd log to stdout (while still ensuring that we know when it is available)

@@ -26,7 +26,7 @@ echo
 echo
 echo TEST PODMAN DOCKERFILE BUILD AS ROOT
 echo
-(set -x; docker run -ti --rm --privileged --entrypoint /bin/sh \
+(set -x; docker run --rm --privileged --entrypoint /bin/sh \
 	-u root:root \
 	-v "`pwd`/storage/root":/podman/.local/share/containers/storage \
 	"${IMAGE}" \
