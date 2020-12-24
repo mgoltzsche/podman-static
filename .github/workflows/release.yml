@@ -74,6 +74,7 @@ jobs:
         done
 
     - name: Create Release
+      if: {{ github.ref != 'ref/head/master' }}
       id: create_release
       uses: actions/create-release@v1
       env:
@@ -85,6 +86,7 @@ jobs:
         prerelease: true
 
     - name: Upload Archive Signature
+      if: {{ github.ref != 'ref/head/master' }}
       id: upload-archive-signature
       uses: actions/upload-release-asset@v1
       env:
@@ -96,6 +98,7 @@ jobs:
         asset_content_type: application/octet-stream
 
     - name: Upload Archive
+      if: {{ github.ref != 'ref/head/master' }}
       id: upload-archive
       uses: actions/upload-release-asset@v1
       env:
