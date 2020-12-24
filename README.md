@@ -6,7 +6,7 @@ nested and rootless containerization scenarios.
 The alpine-based image provides the following statically linked binaries
 _(without systemd support)_:
 * [podman](https://github.com/containers/libpod)
-* [runc](https://github.com/opencontainers/runc/)
+* [runc](https://github.com/opencontainers/runc/) or [crun](https://github.com/containers/crun)
 * [conmon](https://github.com/containers/conmon)
 * [fuse-overlayfs](https://github.com/containers/fuse-overlayfs) and [libfuse](https://github.com/libfuse/libfuse)
 * [slirp4netns](https://github.com/rootless-containers/slirp4netns) (with [libslirp](https://gitlab.freedesktop.org/slirp/libslirp))

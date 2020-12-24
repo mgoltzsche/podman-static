@@ -46,6 +46,7 @@ RUN set -ex; \
 	make git-vars bin/conmon PKG_CONFIG='pkg-config --static' CFLAGS='-std=c99 -Os -Wall -Wextra -Werror -static' LDFLAGS='-s -w -static'; \
 	bin/conmon --help >/dev/null
 
+
 # CNI plugins
 FROM podmanbuildbase AS cniplugins
 ARG CNI_PLUGIN_VERSION=v0.9.0
@@ -104,9 +105,13 @@ RUN set -ex; \
 	make install; \
 	fuse-overlayfs --help >/dev/null
 
-# Download gosu
-FROM alpine:3.12 AS downloads
+
+# Download gpg
+FROM alpine:3.12 AS gpg
 RUN apk add --no-cache gnupg
+
+# Download gosu and crun
+FROM gpg AS gosu
 ARG GOSU_VERSION=1.12
 RUN set -ex; \
 	wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64"; \
@@ -117,21 +122,15 @@ RUN set -ex; \
 	gosu nobody true
 
 
-# Build final image
-FROM alpine:3.12
+# Build podman base image
+FROM alpine:3.12 AS podmanbase
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
-# Install iptables & new-uidmap
-RUN apk add --no-cache tzdata ca-certificates iptables ip6tables shadow-uidmap
-# Copy binaries from other images
+RUN apk add --no-cache tzdata ca-certificates
+COPY --from=gosu /usr/local/bin/gosu /usr/local/bin/gosu
 COPY --from=conmon /conmon/bin/conmon /usr/libexec/podman/conmon
-COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
-COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
-COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
-COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
-COPY --from=downloads /usr/local/bin/gosu /usr/local/bin/gosu
-COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
-COPY conf /
+COPY conf/containers /etc/containers
+COPY entrypoint.sh /entrypoint.sh
 RUN set -ex; \
 	adduser -D podman -h /podman -u 100000; \
 	echo 'podman:100001:65536' > /etc/subuid; \
@@ -139,12 +138,46 @@ RUN set -ex; \
 	ln -s /usr/local/bin/podman /usr/bin/docker; \
 	mkdir -p /podman; \
 	chmod 1777 /podman; \
-	runc --help >/dev/null; \
 	podman --help >/dev/null; \
-	/usr/libexec/podman/conmon --help >/dev/null; \
-	slirp4netns --help >/dev/null; \
-	fuse-overlayfs --help >/dev/null;
+	/usr/libexec/podman/conmon --help >/dev/null
 WORKDIR /podman
 ENV HOME=/podman
 ENTRYPOINT [ "/entrypoint.sh" ]
 CMD [ "sh" ]
+
+# Build rootless podman base image (without OCI runtime)
+FROM podmanbase AS rootlesspodmanbase
+ENV BUILDAH_ISOLATION=chroot container=oci
+RUN apk add --no-cache shadow-uidmap
+COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
+COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
+COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
+RUN set -ex; \
+	slirp4netns --help >/dev/null; \
+	fuse-overlayfs --help >/dev/null
+
+# Build rootless podman base image with runc
+FROM rootlesspodmanbase AS rootlesspodmanrunc
+COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
+
+# Download crun
+FROM gpg AS crun
+ARG CRUN_VERSION=0.16
+RUN set -ex; \
+	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd; \
+	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd.asc; \
+	gpg --keyserver ha.pool.sks-keyservers.net --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
+	gpg --batch --verify /tmp/crun.asc /usr/local/bin/crun; \
+	chmod +x /usr/local/bin/crun; \
+	crun --help >/dev/null
+
+# Build rootless podman base image with crun
+FROM rootlesspodmanbase AS rootlesspodmancrun
+COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
+COPY conf/rootless-crun-containers.conf /etc/containers/containers.conf
+
+# Build podman image with rootless binaries and CNI plugins
+FROM rootlesspodmanrunc AS podmanall
+RUN apk add --no-cache iptables ip6tables
+COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
+COPY conf/cni /etc/cni

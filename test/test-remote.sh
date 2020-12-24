@@ -1,8 +1,12 @@
 #!/bin/sh
 
+echo
+echo TEST REMOTE PODMAN
+echo
+
 cd "$(dirname $0)"
 
-set -x
+set -ux
 
 ADDRESS=127.0.0.1:53453
 
@@ -15,7 +19,7 @@ docker logs -f "$PODMAN_CONTAINER" 2>&1 | sed -E 's/^/podman service: /g' &
 sleep 5
 
 (
-set -e
+set -eu
 docker run --rm --network=host -v "$(pwd):/build" \
 	"${PODMAN_REMOTE_IMAGE}" \
 	podman --url=tcp://$ADDRESS run alpine:3.12 echo hello from remote container
