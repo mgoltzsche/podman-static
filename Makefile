@@ -1,7 +1,7 @@
 PODMAN_IMAGE_NAME ?= mgoltzsche/podman
 PODMAN_IMAGE ?= $(PODMAN_IMAGE_NAME):latest
 PODMAN_IMAGE_TARGET ?= podmanall
-PODMAN_MINIMAL_IMAGE ?= $(PODMAN_IMAGE)-rootless
+PODMAN_MINIMAL_IMAGE ?= $(PODMAN_IMAGE)-minimal
 PODMAN_REMOTE_IMAGE ?= $(PODMAN_IMAGE)-remote
 PODMAN_SSH_IMAGE ?= mgoltzsche/podman-ssh
 
@@ -10,7 +10,9 @@ GPG_IMAGE=gpg-signer
 ASSET_NAME=podman-linux-amd64
 BUILD_DIR=build/$(ASSET_NAME)
 
-DOCKER ?= $(if $(shell podman -v),podman,docker)
+# TODO: Make the build work with podman as well (GitHub's workflow runner also supports podman)
+#DOCKER ?= $(if $(shell podman -v),podman,docker)
+DOCKER=docker
 
 images: podman podman-remote podman-minimal
 
