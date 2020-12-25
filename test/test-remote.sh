@@ -10,7 +10,7 @@ set -ux
 
 ADDRESS=127.0.0.1:53453
 
-PODMAN_CONTAINER="$(docker run -d --rm --privileged --network=host \
+PODMAN_CONTAINER="$(docker run -d --rm --privileged --network=host -u podman:podman \
 	-v "`pwd`/storage/user":/podman/.local/share/containers/storage \
 	"${PODMAN_IMAGE}" \
 	podman system service -t 0 tcp:$ADDRESS)"

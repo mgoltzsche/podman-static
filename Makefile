@@ -1,10 +1,8 @@
-PODMAN_IMAGE_TAG ?= latest
 PODMAN_IMAGE_NAME ?= mgoltzsche/podman
-PODMAN_IMAGE ?= $(PODMAN_IMAGE_NAME):$(PODMAN_IMAGE_TAG)
-PODMAN_ROOTLESS_IMAGE ?= $(PODMAN_IMAGE)-rootless
+PODMAN_IMAGE ?= $(PODMAN_IMAGE_NAME):latest
 PODMAN_IMAGE_TARGET ?= podmanall
-PODMAN_REMOTE_IMAGE_NAME ?= mgoltzsche/podman-remote
-PODMAN_REMOTE_IMAGE ?= $(PODMAN_REMOTE_IMAGE_NAME):$(PODMAN_IMAGE_TAG)
+PODMAN_MINIMAL_IMAGE ?= $(PODMAN_IMAGE)-rootless
+PODMAN_REMOTE_IMAGE ?= $(PODMAN_IMAGE)-remote
 PODMAN_SSH_IMAGE ?= mgoltzsche/podman-ssh
 
 GPG_IMAGE=gpg-signer
@@ -12,36 +10,47 @@ GPG_IMAGE=gpg-signer
 ASSET_NAME=podman-linux-amd64
 BUILD_DIR=build/$(ASSET_NAME)
 
+DOCKER ?= $(if $(shell podman -v),podman,docker)
 
-images: podman podman-rootless podman-remote
+images: podman podman-remote podman-minimal
 
 podman:
-	docker build --force-rm -t $(PODMAN_IMAGE) --target $(PODMAN_IMAGE_TARGET) .
+	$(DOCKER) build --force-rm -t $(PODMAN_IMAGE) --target $(PODMAN_IMAGE_TARGET) .
 
-podman-rootless:
-	make podman PODMAN_IMAGE=$(PODMAN_ROOTLESS_IMAGE) PODMAN_IMAGE_TARGET=rootlesspodmancrun
+podman-minimal:
+	make podman PODMAN_IMAGE=$(PODMAN_MINIMAL_IMAGE) PODMAN_IMAGE_TARGET=rootlesspodmanminimal
 
 podman-remote:
-	docker build --force-rm -t $(PODMAN_REMOTE_IMAGE) -f Dockerfile-remote .
+	$(DOCKER) build --force-rm -t $(PODMAN_REMOTE_IMAGE) -f Dockerfile-remote .
 
-podman-ssh: podman-rootless
-	docker build --force-rm -t $(PODMAN_SSH_IMAGE) -f Dockerfile-ssh --build-arg BASEIMAGE=$(PODMAN_ROOTLESS_IMAGE) .
+podman-ssh: podman
+	$(DOCKER) build --force-rm -t $(PODMAN_SSH_IMAGE) -f Dockerfile-ssh --build-arg BASEIMAGE=$(PODMAN_IMAGE) .
 
-test: test-rootless-image test-local-rootless test-local-rootful test-remote
+test: test-local-rootless test-local-rootful test-minimal-image test-remote
 
-test-local-rootful: podman
+test-local-rootful: podman storage-dir
 	IMAGE=$(PODMAN_IMAGE) ./test/test-local-rootful.sh
 
-test-local-rootless: podman
+test-local-rootless: podman storage-dir
 	IMAGE=$(PODMAN_IMAGE) ./test/test-local-rootless.sh
 
-test-rootless-image: podman-rootless
-	IMAGE=$(PODMAN_ROOTLESS_IMAGE) TEST_PREDICATE=ROOTLESS ./test/test-local-rootless.sh
+test-minimal-image: podman-minimal storage-dir
+	IMAGE=$(PODMAN_MINIMAL_IMAGE) TEST_PREDICATE=MINIMAL SKIP_PORTMAPPING_TEST=true ./test/test-local-rootless.sh
 
-test-remote: podman-rootless podman-remote
-	PODMAN_IMAGE=$(PODMAN_ROOTLESS_IMAGE) \
+storage-dir: clean-storage-dir
+	mkdir -p test/storage/root
+	mkdir -pm 1777 test/storage/user
+
+clean-storage-dir:
+	$(DOCKER) run --rm -v "`pwd`/test:/test" alpine:3.12 rm -rf /test/storage
+
+test-remote: podman podman-remote
+	PODMAN_IMAGE=$(PODMAN_IMAGE) \
 	PODMAN_REMOTE_IMAGE=$(PODMAN_REMOTE_IMAGE) \
 		./test/test-remote.sh
+
+install:
+	cp -r build/podman-linux-amd64/usr build/podman-linux-amd64/etc /
 
 tar: .podman-from-container
 	rm -f $(BUILD_DIR).tar.gz
@@ -54,19 +63,19 @@ tar: .podman-from-container
 	cp -r conf/cni $(BUILD_DIR)/etc/cni
 	cp README.md $(BUILD_DIR)/
 	set -e; \
-	CONTAINER=`docker create $(PODMAN_IMAGE)`; \
+	CONTAINER=`$(DOCKER) create $(PODMAN_IMAGE)`; \
 	for BINARY in podman runc fusermount3 fuse-overlayfs slirp4netns; do \
-		docker cp $$CONTAINER:/usr/local/bin/$$BINARY $(BUILD_DIR)/usr/local/bin/; \
+		$(DOCKER) cp $$CONTAINER:/usr/local/bin/$$BINARY $(BUILD_DIR)/usr/local/bin/; \
 	done; \
-	docker cp $$CONTAINER:/usr/libexec/podman $(BUILD_DIR)/usr/libexec/podman; \
-	docker cp $$CONTAINER:/usr/libexec/cni $(BUILD_DIR)/usr/libexec/cni; \
-	docker rm $$CONTAINER
+	$(DOCKER) cp $$CONTAINER:/usr/libexec/podman $(BUILD_DIR)/usr/libexec/podman; \
+	$(DOCKER) cp $$CONTAINER:/usr/libexec/cni $(BUILD_DIR)/usr/libexec/cni; \
+	$(DOCKER) rm $$CONTAINER
 
 signed-tar: tar .gpg
 	@echo Running gpg signing container with GPG_SIGN_KEY and GPG_SIGN_KEY_PASSPHRASE
 	export GPG_SIGN_KEY
 	export GPG_SIGN_KEY_PASSPHRASE
-	@docker run --rm -v "`pwd`/build:/build" \
+	@$(DOCKER) run --rm -v "`pwd`/build:/build" \
 		-e GPG_SIGN_KEY="$$GPG_SIGN_KEY" \
 		-e GPG_SIGN_KEY_PASSPHRASE="$$GPG_SIGN_KEY_PASSPHRASE" \
 		$(GPG_IMAGE) /bin/sh -c ' \
@@ -93,20 +102,19 @@ verify-signature:
 	)
 
 .gpg:
-	docker build --force-rm -t $(GPG_IMAGE) --target gpg .
+	$(DOCKER) build --force-rm -t $(GPG_IMAGE) --target gpg .
 
 run:
-	docker run -ti --rm --privileged \
+	$(DOCKER) run -ti --rm --privileged \
 		-v "`pwd`/test/storage/user":/podman/.local/share/containers/storage \
 		$(PODMAN_IMAGE) /bin/sh
 
-clean:
+clean: clean-storage-dir
 	rm -rf build
-	docker run --rm -v "`pwd`/test:/test" alpine:3.12 rm -rf /test/storage
 
 run-server: podman-ssh
 	# TODO: make sshd log to stdout (while still ensuring that we know when it is available)
-	docker run --rm --privileged --network=host \
+	$(DOCKER) run --rm --privileged --network=host \
 		-v "`pwd`/storage/user":/podman/.local/share/containers/storage \
 		-v "`pwd`/test:/build" \
 		-w /build \
@@ -123,7 +131,7 @@ run-server: podman-ssh
 # TODO: fix build run for external client
 # see ssh connection: https://github.com/containers/podman/blob/v2.0.4/pkg/bindings/connection.go#L73
 run-client: podman-remote
-	docker run --rm -it --network=host \
+	$(DOCKER) run --rm -it --network=host \
 		-v "`pwd`/test:/build" \
 		-w /build \
 		-e PODMAN_URL=ssh://podman@127.0.0.1:2222/tmp/podman/podman.sock?secure=True \

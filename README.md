@@ -1,6 +1,6 @@
-# podman binaries and container image ![GitHub workflow badge](https://github.com/mgoltzsche/podman-static/workflows/Release/badge.svg)
+# podman binaries and container images ![GitHub workflow badge](https://github.com/mgoltzsche/podman-static/workflows/Release/badge.svg)
 
-This project provides alpine-based podman container image variants and statically linked (rootless) podman binaries for linux-amd64 along with its dependencies _(without systemd support)_:
+This project provides alpine-based podman container images and statically linked (rootless) podman binaries for linux-amd64 along with its dependencies _(without systemd support)_:
 * [podman](https://github.com/containers/podman)
 * [runc](https://github.com/opencontainers/runc/) or [crun](https://github.com/containers/crun)
 * [conmon](https://github.com/containers/conmon)
@@ -15,13 +15,20 @@ The following image tags are supported:
 | Tag | Description |
 | --- | ----------- |
 | `latest`, `<VERSION>` | podman with both rootless and rootful dependencies: runc, conmon, fuse-overlayfs, slirp4netns, CNI plugins. |
-| `rootless`, `<VERSION>-rootless` | podman with crun (configured to use host cgroup), fuse-overlayfs, slirp4netns and conmon. |
+| `minimal`, `<VERSION>-minimal` | podman, crun, fuse-overlayfs and conmon binaries, configured to use the host's existing namespaces (low isolation level). |
 | `remote`, `<VERSION>-remote` | the podman remote binary. |
 
-Please note that, when running podman within a docker container, the docker container needs to be `--privileged`.  
+By default containers are run as user `root`. However the `podman` (uid/gid 1000) user can be used instead for which also a subuid/gid mapping is provided with the image (as described within the binary installation section below).  
 
-As a workaround for docker the entrypoint script changes the owner of the storage volume mount point (`$HOME/.local/share/containers/storage`) to the unprivileged user `podman` (100000, `HOME=/podman`) before it runs the provided command.  
-Though the entrypoint script can be omitted and a container can be run with any unprivileged user explicitly since the image is user agnostic - though the default uid/gid map only supports the `podman` user.
+The storage directory within the container depends on the user's `HOME` directory:
+
+| User | Storage directory |
+| ---- | ----------------- |
+| `root` | `/var/lib/containers/storage` |
+| `podman` | `/podman/.local/share/containers/storage` |
+| other | `/.local/share/containers/storage` |
+
+Please note that, when running non-remote podman within a docker container, the docker container needs to be `--privileged`.
 
 ### Container usage example
 
@@ -29,7 +36,7 @@ Run podman in docker:
 ```sh
 docker run --privileged mgoltzsche/podman:rootless docker run alpine:latest echo hello from nested container
 ```
-_Within the container `docker` is linked to `podman` to support applications that require `docker`._
+_Within the container `docker` is linked to `podman` to support applications that use the `docker` command._
 
 ## Binary installation on a host
 
@@ -44,17 +51,25 @@ curl -fsSL -o podman-linux-amd64.tar.gz.asc https://github.com/mgoltzsche/podman
 gpg --keyserver ha.pool.sks-keyservers.net --recv-keys 0CCF102C4F95D89E583FF1D4F8B5AF50344BB503
 gpg --batch --verify podman-linux-amd64.tar.gz.asc podman-linux-amd64.tar.gz
 ```
-_This may fail every now and then due to desync/unavailable key servers. Please retry in that case._  
+_This may fail every now and then due to desync/unavailable key servers. In that case please retry._  
 
 Install the binaries and configuration on your host after you've inspected the archive:
 ```sh
 tar -xzf podman-linux-amd64.tar.gz
 sudo cp -r podman-linux-amd64/usr podman-linux-amd64/etc /
 ```
+_If you have docker installed on the same host it will be broken until you remove the newly installed `/usr/local/bin/runc` binary since docker is not compatible with the latest runc version provided here while podman is also compatible with the older runc version that comes with docker._  
 
-To support applications that require the `docker` command you may want to link it to `podman` as follows:
+In order to run rootless containers that use multiple uids/gids you may want to set up a uid/gid mapping for your user on your host:
+```
+sudo sh -c "echo $(id -un):100000:65536 >> /etc/subuid"
+sudo sh -c "echo $(id -gn):100000:65536 >> /etc/subgid"
+```
+_Please make sure you don't add the mapping multiple times._  
+
+To support applications that use the `docker` command you may want to link it to `podman` as follows:
 ```sh
-sudo ln -s /usr/local/bin/podman /usr/bin/docker
+sudo ln -s /usr/local/bin/podman /usr/local/bin/docker
 ```
 
 ### Binary usage example

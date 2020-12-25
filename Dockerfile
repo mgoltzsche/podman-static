@@ -130,20 +130,17 @@ COPY --from=gosu /usr/local/bin/gosu /usr/local/bin/gosu
 COPY --from=conmon /conmon/bin/conmon /usr/libexec/podman/conmon
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY conf/containers /etc/containers
-COPY entrypoint.sh /entrypoint.sh
 RUN set -ex; \
-	adduser -D podman -h /podman -u 100000; \
-	echo 'podman:100001:65536' > /etc/subuid; \
-	echo 'podman:100001:65536' > /etc/subgid; \
+	adduser -D podman -h /podman -u 1000; \
+	echo 'podman:100000:65536' > /etc/subuid; \
+	echo 'podman:100000:65536' > /etc/subgid; \
 	ln -s /usr/local/bin/podman /usr/bin/docker; \
-	mkdir -p /podman; \
-	chmod 1777 /podman; \
+	mkdir -p /podman/.local/share/containers/storage /var/lib/containers/storage; \
+	chown -R podman:podman /podman; \
+	mkdir -m1777 /.local /.config; \
 	podman --help >/dev/null; \
 	/usr/libexec/podman/conmon --help >/dev/null
-WORKDIR /podman
-ENV HOME=/podman
-ENTRYPOINT [ "/entrypoint.sh" ]
-CMD [ "sh" ]
+ENV _CONTAINERS_USERNS_CONFIGURED=""
 
 # Build rootless podman base image (without OCI runtime)
 FROM podmanbase AS rootlesspodmanbase
@@ -151,10 +148,6 @@ ENV BUILDAH_ISOLATION=chroot container=oci
 RUN apk add --no-cache shadow-uidmap
 COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
 COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
-COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
-RUN set -ex; \
-	slirp4netns --help >/dev/null; \
-	fuse-overlayfs --help >/dev/null
 
 # Build rootless podman base image with runc
 FROM rootlesspodmanbase AS rootlesspodmanrunc
@@ -171,13 +164,14 @@ RUN set -ex; \
 	chmod +x /usr/local/bin/crun; \
 	crun --help >/dev/null
 
-# Build rootless podman base image with crun
-FROM rootlesspodmanbase AS rootlesspodmancrun
+# Build minimal rootless podman
+FROM rootlesspodmanbase AS rootlesspodmanminimal
 COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
-COPY conf/rootless-crun-containers.conf /etc/containers/containers.conf
+COPY conf/crun-containers.conf /etc/containers/containers.conf
 
 # Build podman image with rootless binaries and CNI plugins
 FROM rootlesspodmanrunc AS podmanall
 RUN apk add --no-cache iptables ip6tables
+COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
 COPY conf/cni /etc/cni
