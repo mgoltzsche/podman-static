@@ -18,7 +18,8 @@ The following image tags are supported:
 | `minimal`, `<VERSION>-minimal` | podman, crun, fuse-overlayfs and conmon binaries, configured to use the host's existing namespaces (low isolation level). |
 | `remote`, `<VERSION>-remote` | the podman remote binary. |
 
-By default containers are run as user `root`. However the `podman` (uid/gid 1000) user can be used instead for which also a subuid/gid mapping is provided with the image (as described within the binary installation section below).  
+By default containers are run as user `root`.
+However the `podman` (uid/gid 1000) user can be used instead for which also a subuid/gid mapping is configured with the image (as described within the binary installation section below).  
 
 The storage directory within the container depends on the user's `HOME` directory:
 

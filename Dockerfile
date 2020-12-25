@@ -93,6 +93,7 @@ RUN set -ex; \
 	cd build; \
 	LDFLAGS="-lpthread -s -w -static" meson --prefix /usr -D default_library=static .. || (cat /libfuse/build/meson-logs/meson-log.txt; false); \
 	ninja; \
+	touch /dev/fuse; \
 	ninja install; \
 	fusermount3 -V
 ARG FUSEOVERLAYFS_VERSION=v1.3.0
