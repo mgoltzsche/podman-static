@@ -21,21 +21,13 @@ The following image tags are supported:
 By default containers are run as user `root`.
 However the `podman` (uid/gid 1000) user can be used instead for which also a subuid/gid mapping is configured with the image (as described within the binary installation section below).  
 
-The storage directory within the container depends on the user's `HOME` directory:
-
-| User | Storage directory |
-| ---- | ----------------- |
-| `root` | `/var/lib/containers/storage` |
-| `podman` | `/podman/.local/share/containers/storage` |
-| other | `/.local/share/containers/storage` |
-
 Please note that, when running non-remote podman within a docker container, the docker container needs to be `--privileged`.
 
 ### Container usage example
 
 Run podman in docker:
 ```sh
-docker run --privileged mgoltzsche/podman:rootless docker run alpine:latest echo hello from nested container
+docker run --privileged -u podman:podman mgoltzsche/podman:minimal docker run alpine:latest echo hello from nested container
 ```
 _Within the container `docker` is linked to `podman` to support applications that use the `docker` command._
 
@@ -63,8 +55,8 @@ _If you have docker installed on the same host it will be broken until you remov
 
 In order to run rootless containers that use multiple uids/gids you may want to set up a uid/gid mapping for your user on your host:
 ```
-sudo sh -c "echo $(id -un):100000:65536 >> /etc/subuid"
-sudo sh -c "echo $(id -gn):100000:65536 >> /etc/subgid"
+sudo sh -c "echo $(id -un):100000:200000 >> /etc/subuid"
+sudo sh -c "echo $(id -gn):100000:200000 >> /etc/subgid"
 ```
 _Please make sure you don't add the mapping multiple times._  
 
@@ -78,6 +70,12 @@ sudo ln -s /usr/local/bin/podman /usr/local/bin/docker
 ```sh
 podman run alpine:latest echo hello from podman
 ```
+
+## Default persistent storage location
+
+The default storage location depends on the user:
+* For `root` storage is located at `/var/lib/containers/storage`.
+* For unprivileged users storage is located at `~/.local/share/containers/storage`.
 
 ## Local build & test
 
