@@ -24,8 +24,8 @@ docker run --rm --network=host -v "$(pwd):/build" \
 	"${PODMAN_REMOTE_IMAGE}" \
 	podman --url=tcp://$ADDRESS run alpine:3.12 echo hello from remote container
 
-# ATTENTION: podman remote doesn't handle errors properly: https://github.com/containers/podman/issues/7137
-docker run --rm --network=host \
+# ATTENTION: podman remote fails if it cannot map the uids/gids from the server locally as well (which is why podman-remote user has been added)
+docker run --rm --network=host --user=podman-remote:podman-remote \
 	-v "`pwd`:/build" \
 	"${PODMAN_REMOTE_IMAGE}" \
 	sh -c "set -ex; \
