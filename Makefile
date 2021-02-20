@@ -13,6 +13,7 @@ BUILD_DIR=build/$(ASSET_NAME)
 # TODO: Make the tests work with podman in podman (GitHub's workflow runner also supports podman)
 #DOCKER ?= $(if $(shell podman -v),podman,docker)
 DOCKER ?= docker
+export DOCKER
 
 images: podman podman-remote podman-minimal
 

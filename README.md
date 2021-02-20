@@ -65,6 +65,8 @@ To support applications that use the `docker` command you may want to link it to
 sudo ln -s /usr/local/bin/podman /usr/local/bin/docker
 ```
 
+Before updating binaries on your host please terminate all corresponding processes.
+
 ### Binary usage example
 
 ```sh
