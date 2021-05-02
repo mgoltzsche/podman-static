@@ -1,17 +1,18 @@
 # podman build base
-FROM golang:1.14-alpine3.12 AS podmanbuildbase
+FROM golang:1.16-alpine3.13 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
-	libseccomp-dev libselinux-dev ostree-dev openssl iptables bash \
-	go-md2man
-RUN git clone https://github.com/bats-core/bats-core.git && cd bats-core && ./install.sh /usr/local
+	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables \
+	bash go-md2man
+ARG BATS_VERSION=v1.3.0
+RUN git clone -c 'advice.detachedHead=false' --branch ${BATS_VERSION} https://github.com/bats-core/bats-core.git && cd bats-core && ./install.sh /usr/local
 
 # podman remote
 FROM podmanbuildbase AS podman-remote
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v3.0.1
-RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
+ARG PODMAN_VERSION=v3.1.2
+RUN git clone -c 'advice.detachedHead=false' --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
 RUN set -eux; \
@@ -22,6 +23,6 @@ RUN set -eux; \
 	podman --help >/dev/null; \
 	[ "$(ldd /usr/local/bin/podman-remote | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman-remote; false)
 
-FROM alpine:3.12
+FROM alpine:3.13
 COPY --from=podman-remote /usr/local/bin /usr/local/bin
 RUN adduser -D podman-remote -h /podman -u 1000

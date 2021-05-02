@@ -1,9 +1,9 @@
 # runc
-FROM golang:1.14-alpine3.12 AS runc
-ARG RUNC_VERSION=v1.0.0-rc92
+FROM golang:1.16-alpine3.13 AS runc
+ARG RUNC_VERSION=v1.0.0-rc93
 RUN set -eux; \
-	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev make git bash; \
-	git clone --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
+	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev libseccomp-static make git bash; \
+	git clone -c 'advice.detachedHead=false' --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
 	cd src/github.com/opencontainers/runc; \
 	make static BUILDTAGS='seccomp selinux ambient'; \
 	mv runc /usr/local/bin/runc; \
@@ -13,20 +13,21 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.14-alpine3.12 AS podmanbuildbase
+FROM golang:1.16-alpine3.13 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
-	libseccomp-dev libselinux-dev ostree-dev openssl iptables bash \
-	go-md2man
-RUN git clone https://github.com/bats-core/bats-core.git && cd bats-core && ./install.sh /usr/local
+	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables \
+	bash go-md2man
+ARG BATS_VERSION=v1.3.0
+RUN git clone -c 'advice.detachedHead=false' --branch ${BATS_VERSION} https://github.com/bats-core/bats-core.git && cd bats-core && ./install.sh /usr/local
 
 
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v3.0.1
-RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
+ARG PODMAN_VERSION=v3.1.2
+RUN git clone -c 'advice.detachedHead=false' --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
 RUN set -ex; \
@@ -39,8 +40,8 @@ RUN set -ex; \
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
 # conmon 2.0.19 cannot be built currently since alpine does not provide nix package yet
-ARG CONMON_VERSION=v2.0.22
-RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
+ARG CONMON_VERSION=v2.0.27
+RUN git clone -c 'advice.detachedHead=false' --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -ex; \
 	make git-vars bin/conmon PKG_CONFIG='pkg-config --static' CFLAGS='-std=c99 -Os -Wall -Wextra -Werror -static' LDFLAGS='-s -w -static'; \
@@ -49,8 +50,8 @@ RUN set -ex; \
 
 # CNI plugins
 FROM podmanbuildbase AS cniplugins
-ARG CNI_PLUGIN_VERSION=v0.9.0
-RUN git clone --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
+ARG CNI_PLUGIN_VERSION=v0.9.1
+RUN git clone -c 'advice.detachedHead=false' --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
 RUN set -ex; \
 	for PLUGINDIR in plugins/ipam/host-local plugins/main/loopback plugins/main/bridge plugins/meta/portmap; do \
@@ -66,15 +67,15 @@ WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev
 # Build libslirp
 ARG LIBSLIRP_VERSION=v4.4.0
-RUN git clone --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
+RUN git clone -c 'advice.detachedHead=false' --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
 WORKDIR /libslirp
 RUN set -ex; \
 	LDFLAGS="-s -w -static" meson --prefix /usr -D default_library=static build; \
 	ninja -C build install
 # Build slirp4netns
 WORKDIR /
-ARG SLIRP4NETNS_VERSION=v1.1.8
-RUN git clone --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
+ARG SLIRP4NETNS_VERSION=v1.1.9
+RUN git clone -c 'advice.detachedHead=false' --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
 RUN set -ex; \
 	./autogen.sh; \
@@ -85,8 +86,8 @@ RUN set -ex; \
 # fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
 RUN apk add --update --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
-ARG LIBFUSE_VERSION=fuse-3.10.1
-RUN git clone --branch=$LIBFUSE_VERSION https://github.com/libfuse/libfuse /libfuse
+ARG LIBFUSE_VERSION=fuse-3.10.3
+RUN git clone -c 'advice.detachedHead=false' --branch=$LIBFUSE_VERSION https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -ex; \
 	mkdir build; \
@@ -96,8 +97,8 @@ RUN set -ex; \
 	touch /dev/fuse; \
 	ninja install; \
 	fusermount3 -V
-ARG FUSEOVERLAYFS_VERSION=v1.3.0
-RUN git clone --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
+ARG FUSEOVERLAYFS_VERSION=v1.5.0
+RUN git clone -c 'advice.detachedHead=false' --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -ex; \
 	sh autogen.sh; \
@@ -108,11 +109,11 @@ RUN set -ex; \
 
 
 # Download gpg
-FROM alpine:3.12 AS gpg
+FROM alpine:3.13 AS gpg
 RUN apk add --no-cache gnupg
 
 # Build podman base image
-FROM alpine:3.12 AS podmanbase
+FROM alpine:3.13 AS podmanbase
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/libexec/podman/conmon
@@ -125,7 +126,7 @@ RUN set -ex; \
 	ln -s /usr/local/bin/podman /usr/bin/docker; \
 	mkdir -p /podman/.local/share/containers/storage /var/lib/containers/storage; \
 	chown -R podman:podman /podman; \
-	mkdir -m1777 /.local /.config; \
+	mkdir -m1777 /.local /.config /.cache; \
 	podman --help >/dev/null; \
 	/usr/libexec/podman/conmon --help >/dev/null
 ENV _CONTAINERS_USERNS_CONFIGURED=""
@@ -143,7 +144,7 @@ COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 
 # Download crun
 FROM gpg AS crun
-ARG CRUN_VERSION=0.18
+ARG CRUN_VERSION=0.19.1
 RUN set -ex; \
 	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd; \
 	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd.asc; \
