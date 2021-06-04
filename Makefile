@@ -45,7 +45,7 @@ storage-dir: clean-storage-dir
 	mkdir -pm 1777 test/storage/user
 
 clean-storage-dir:
-	$(DOCKER) run --rm -v "`pwd`/test:/test" alpine:3.12 rm -rf /test/storage
+	$(DOCKER) run --rm -v "`pwd`/test:/test" alpine:3.13 rm -rf /test/storage
 
 test-remote: podman podman-remote
 	PODMAN_IMAGE=$(PODMAN_IMAGE) \

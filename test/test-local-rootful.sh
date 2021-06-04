@@ -20,7 +20,7 @@ echo
 	-u root:root \
 	-v "`pwd`/storage/root":/var/lib/containers/storage \
 	"${IMAGE}" \
-	-c 'podman run --rm alpine:3.12 wget -O /dev/null http://example.org')
+	-c 'podman run --rm alpine:3.13 wget -O /dev/null http://example.org')
 
 echo
 echo TEST PODMAN DOCKERFILE BUILD AS ROOT
