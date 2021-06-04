@@ -61,7 +61,7 @@ tar: .podman-from-container
 
 .podman-from-container: podman
 	rm -rf $(BUILD_DIR)
-	mkdir -p $(BUILD_DIR)/etc $(BUILD_DIR)/usr/local/bin $(BUILD_DIR)/usr/libexec
+	mkdir -p $(BUILD_DIR)/etc $(BUILD_DIR)/usr/local/bin $(BUILD_DIR)/usr/libexec $(BUILD_DIR)/usr/share/containers
 	cp -r conf/containers $(BUILD_DIR)/etc/containers
 	cp -r conf/cni $(BUILD_DIR)/etc/cni
 	cp README.md $(BUILD_DIR)/
@@ -72,6 +72,7 @@ tar: .podman-from-container
 	done; \
 	$(DOCKER) cp $$CONTAINER:/usr/libexec/podman $(BUILD_DIR)/usr/libexec/podman; \
 	$(DOCKER) cp $$CONTAINER:/usr/libexec/cni $(BUILD_DIR)/usr/libexec/cni; \
+	$(DOCKER) cp $$CONTAINER:/usr/share/containers/seccomp.json $(BUILD_DIR)/usr/share/containers/seccomp.json; \
 	$(DOCKER) rm $$CONTAINER
 
 signed-tar: tar .gpg
