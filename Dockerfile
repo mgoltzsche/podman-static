@@ -1,6 +1,6 @@
 # runc
 FROM golang:1.16-alpine3.13 AS runc
-ARG RUNC_VERSION=v1.0.0-rc93
+ARG RUNC_VERSION=v1.0.0-rc95
 RUN set -eux; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev libseccomp-static make git bash; \
 	git clone -c 'advice.detachedHead=false' --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
@@ -26,7 +26,7 @@ RUN git clone -c 'advice.detachedHead=false' --branch ${BATS_VERSION} https://gi
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v3.1.2
+ARG PODMAN_VERSION=v3.2.0
 RUN git clone -c 'advice.detachedHead=false' --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
@@ -40,7 +40,7 @@ RUN set -ex; \
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
 # conmon 2.0.19 cannot be built currently since alpine does not provide nix package yet
-ARG CONMON_VERSION=v2.0.27
+ARG CONMON_VERSION=v2.0.29
 RUN git clone -c 'advice.detachedHead=false' --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -ex; \
@@ -50,7 +50,7 @@ RUN set -ex; \
 
 # CNI plugins
 FROM podmanbuildbase AS cniplugins
-ARG CNI_PLUGIN_VERSION=v0.9.1
+ARG CNI_PLUGIN_VERSION=v1.0.0-rc1
 RUN git clone -c 'advice.detachedHead=false' --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
 RUN set -ex; \
@@ -66,7 +66,7 @@ FROM podmanbuildbase AS slirp4netns
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev
 # Build libslirp
-ARG LIBSLIRP_VERSION=v4.4.0
+ARG LIBSLIRP_VERSION=v4.5.0
 RUN git clone -c 'advice.detachedHead=false' --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
 WORKDIR /libslirp
 RUN set -ex; \
@@ -74,7 +74,7 @@ RUN set -ex; \
 	ninja -C build install
 # Build slirp4netns
 WORKDIR /
-ARG SLIRP4NETNS_VERSION=v1.1.9
+ARG SLIRP4NETNS_VERSION=v1.1.10
 RUN git clone -c 'advice.detachedHead=false' --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
 RUN set -ex; \
@@ -124,7 +124,8 @@ RUN set -ex; \
 	echo 'podman:100000:65536' > /etc/subuid; \
 	echo 'podman:100000:65536' > /etc/subgid; \
 	ln -s /usr/local/bin/podman /usr/bin/docker; \
-	mkdir -p /podman/.local/share/containers/storage /var/lib/containers/storage; \
+	mkdir -p /podman/.local/share/containers/storage /var/lib/containers/storage /usr/share/containers; \
+	wget -O /usr/share/containers/seccomp.json https://src.fedoraproject.org/rpms/containers-common/raw/rawhide/f/seccomp.json ; \
 	chown -R podman:podman /podman; \
 	mkdir -m1777 /.local /.config /.cache; \
 	podman --help >/dev/null; \
@@ -144,7 +145,7 @@ COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 
 # Download crun
 FROM gpg AS crun
-ARG CRUN_VERSION=0.19.1
+ARG CRUN_VERSION=0.20
 RUN set -ex; \
 	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd; \
 	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd.asc; \
