@@ -25,7 +25,7 @@ sleep 5
 set -eu
 $DOCKER run --rm --network=host -v "$(pwd):/build" \
 	"${PODMAN_REMOTE_IMAGE}" \
-	podman --url=tcp://$ADDRESS run alpine:3.12 echo hello from remote container
+	podman --url=tcp://$ADDRESS run alpine:3.13 echo hello from remote container
 
 # ATTENTION: podman remote fails if it cannot map the uids/gids from the server locally as well (which is why podman-remote user has been added)
 $DOCKER run --rm --network=host --user=podman-remote:podman-remote \
@@ -41,7 +41,7 @@ $DOCKER run --rm --network=host --user=podman-remote:podman-remote \
 #	"${PODMAN_REMOTE_IMAGE}" \
 #	sh -c "set -ex; \
 #		echo hello > myfile; \
-#		podman --url=tcp://$ADDRESS run -v \$(pwd)/myfile:/myfile alpine:3.12 cat /myfile"
+#		podman --url=tcp://$ADDRESS run -v \$(pwd)/myfile:/myfile alpine:3.13 cat /myfile"
 )
 STATUS=$?
 
