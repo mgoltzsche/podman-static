@@ -124,8 +124,7 @@ RUN set -ex; \
 	echo 'podman:100000:65536' > /etc/subuid; \
 	echo 'podman:100000:65536' > /etc/subgid; \
 	ln -s /usr/local/bin/podman /usr/bin/docker; \
-	mkdir -p /podman/.local/share/containers/storage /var/lib/containers/storage /usr/share/containers; \
-	wget -O /usr/share/containers/seccomp.json https://src.fedoraproject.org/rpms/containers-common/raw/rawhide/f/seccomp.json ; \
+	mkdir -p /podman/.local/share/containers/storage /var/lib/containers/storage; \
 	chown -R podman:podman /podman; \
 	mkdir -m1777 /.local /.config /.cache; \
 	podman --help >/dev/null; \
