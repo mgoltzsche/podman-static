@@ -26,7 +26,7 @@ RUN git clone -c 'advice.detachedHead=false' --branch ${BATS_VERSION} https://gi
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v3.2.0
+ARG PODMAN_VERSION=v3.2.1
 RUN git clone -c 'advice.detachedHead=false' --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
@@ -66,7 +66,7 @@ FROM podmanbuildbase AS slirp4netns
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev
 # Build libslirp
-ARG LIBSLIRP_VERSION=v4.5.0
+ARG LIBSLIRP_VERSION=v4.6.0
 RUN git clone -c 'advice.detachedHead=false' --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
 WORKDIR /libslirp
 RUN set -ex; \
@@ -74,7 +74,7 @@ RUN set -ex; \
 	ninja -C build install
 # Build slirp4netns
 WORKDIR /
-ARG SLIRP4NETNS_VERSION=v1.1.10
+ARG SLIRP4NETNS_VERSION=v1.1.11
 RUN git clone -c 'advice.detachedHead=false' --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
 RUN set -ex; \
@@ -124,8 +124,7 @@ RUN set -ex; \
 	echo 'podman:100000:65536' > /etc/subuid; \
 	echo 'podman:100000:65536' > /etc/subgid; \
 	ln -s /usr/local/bin/podman /usr/bin/docker; \
-	mkdir -p /podman/.local/share/containers/storage /var/lib/containers/storage /usr/share/containers; \
-	wget -O /usr/share/containers/seccomp.json https://src.fedoraproject.org/rpms/containers-common/raw/rawhide/f/seccomp.json ; \
+	mkdir -p /podman/.local/share/containers/storage /var/lib/containers/storage; \
 	chown -R podman:podman /podman; \
 	mkdir -m1777 /.local /.config /.cache; \
 	podman --help >/dev/null; \
