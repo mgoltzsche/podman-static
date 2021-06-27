@@ -29,9 +29,7 @@ podman-remote:
 podman-ssh: podman
 	$(DOCKER) build --force-rm -t $(PODMAN_SSH_IMAGE) -f Dockerfile-ssh --build-arg BASEIMAGE=$(PODMAN_IMAGE) .
 
-# TODO: enable podman-remote test once DNS detection has been fixed: test-remote
-# See https://github.com/mgoltzsche/podman-static/pull/10
-test: test-local-rootless test-local-rootful test-minimal-image
+test: test-local-rootless test-local-rootful test-minimal-image podman-remote
 
 test-local-rootful: podman storage-dir
 	IMAGE=$(PODMAN_IMAGE) ./test/test-local-rootful.sh

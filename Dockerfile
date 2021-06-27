@@ -1,6 +1,6 @@
 # runc
 FROM golang:1.16-alpine3.13 AS runc
-ARG RUNC_VERSION=v1.0.0-rc95
+ARG RUNC_VERSION=v1.0.0
 RUN set -eux; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev libseccomp-static make git bash; \
 	git clone -c 'advice.detachedHead=false' --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
@@ -26,7 +26,7 @@ RUN git clone -c 'advice.detachedHead=false' --branch ${BATS_VERSION} https://gi
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v3.2.1
+ARG PODMAN_VERSION=v3.2.2
 RUN git clone -c 'advice.detachedHead=false' --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
@@ -66,7 +66,7 @@ FROM podmanbuildbase AS slirp4netns
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev
 # Build libslirp
-ARG LIBSLIRP_VERSION=v4.6.0
+ARG LIBSLIRP_VERSION=v4.6.1
 RUN git clone -c 'advice.detachedHead=false' --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
 WORKDIR /libslirp
 RUN set -ex; \
@@ -97,7 +97,7 @@ RUN set -ex; \
 	touch /dev/fuse; \
 	ninja install; \
 	fusermount3 -V
-ARG FUSEOVERLAYFS_VERSION=v1.5.0
+ARG FUSEOVERLAYFS_VERSION=v1.6
 RUN git clone -c 'advice.detachedHead=false' --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -ex; \
@@ -143,12 +143,13 @@ FROM rootlesspodmanbase AS rootlesspodmanrunc
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 
 # Download crun
+# (switched keyserver from sks to ubuntu since sks is offline now and gpg refuses to import keys from keys.openpgp.org because it does not provide a user ID with the key.)
 FROM gpg AS crun
 ARG CRUN_VERSION=0.20.1
 RUN set -ex; \
 	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd; \
 	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd.asc; \
-	gpg --keyserver ha.pool.sks-keyservers.net --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
+	gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
 	gpg --batch --verify /tmp/crun.asc /usr/local/bin/crun; \
 	chmod +x /usr/local/bin/crun; \
 	crun --help >/dev/null
