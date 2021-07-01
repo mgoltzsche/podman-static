@@ -41,7 +41,7 @@ curl -fsSL -o podman-linux-amd64.tar.gz https://github.com/mgoltzsche/podman-sta
 Verify the archive's signature (optional):
 ```sh
 curl -fsSL -o podman-linux-amd64.tar.gz.asc https://github.com/mgoltzsche/podman-static/releases/latest/download/podman-linux-amd64.tar.gz.asc
-gpg --keyserver ha.pool.sks-keyservers.net --recv-keys 0CCF102C4F95D89E583FF1D4F8B5AF50344BB503
+gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 0CCF102C4F95D89E583FF1D4F8B5AF50344BB503
 gpg --batch --verify podman-linux-amd64.tar.gz.asc podman-linux-amd64.tar.gz
 ```
 _This may fail every now and then due to desync/unavailable key servers. In that case please retry._  
