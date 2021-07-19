@@ -1,6 +1,6 @@
 # runc
 FROM golang:1.16-alpine3.13 AS runc
-ARG RUNC_VERSION=v1.0.0
+ARG RUNC_VERSION=v1.0.1
 RUN set -eux; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev libseccomp-static make git bash; \
 	git clone -c 'advice.detachedHead=false' --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
@@ -26,7 +26,7 @@ RUN git clone -c 'advice.detachedHead=false' --branch ${BATS_VERSION} https://gi
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v3.2.2
+ARG PODMAN_VERSION=v3.2.3
 RUN git clone -c 'advice.detachedHead=false' --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
