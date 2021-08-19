@@ -61,7 +61,7 @@ tar: .podman-from-container
 
 .podman-from-container: podman
 	rm -rf $(BUILD_DIR)
-	mkdir -p $(BUILD_DIR)/etc $(BUILD_DIR)/usr/local/bin $(BUILD_DIR)/usr/libexec
+	mkdir -p $(BUILD_DIR)/etc $(BUILD_DIR)/usr/local/bin $(BUILD_DIR)/usr/local/lib
 	cp -r conf/containers $(BUILD_DIR)/etc/containers
 	cp -r conf/cni $(BUILD_DIR)/etc/cni
 	cp README.md $(BUILD_DIR)/
@@ -70,8 +70,8 @@ tar: .podman-from-container
 	for BINARY in podman runc fusermount3 fuse-overlayfs slirp4netns; do \
 		$(DOCKER) cp $$CONTAINER:/usr/local/bin/$$BINARY $(BUILD_DIR)/usr/local/bin/; \
 	done; \
-	$(DOCKER) cp $$CONTAINER:/usr/libexec/podman $(BUILD_DIR)/usr/libexec/podman; \
-	$(DOCKER) cp $$CONTAINER:/usr/libexec/cni $(BUILD_DIR)/usr/libexec/cni; \
+	$(DOCKER) cp $$CONTAINER:/usr/local/lib/podman $(BUILD_DIR)/usr/local/lib/podman; \
+	$(DOCKER) cp $$CONTAINER:/usr/local/lib/cni $(BUILD_DIR)/usr/local/lib/cni; \
 	$(DOCKER) rm $$CONTAINER
 
 signed-tar: tar .gpg
