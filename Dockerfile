@@ -57,7 +57,7 @@ RUN git clone -c 'advice.detachedHead=false' --branch=${CNI_PLUGIN_VERSION} http
 WORKDIR /go/src/github.com/containernetworking/plugins
 RUN set -ex; \
 	for PLUGINDIR in plugins/ipam/host-local plugins/main/loopback plugins/main/bridge plugins/meta/portmap; do \
-		PLUGINBIN=/usr/libexec/cni/$(basename $PLUGINDIR); \
+		PLUGINBIN=/usr/local/lib/cni/$(basename $PLUGINDIR); \
 		CGO_ENABLED=0 go build -o $PLUGINBIN -ldflags "-s -w -extldflags '-static'" ./$PLUGINDIR; \
 		[ "$(ldd $PLUGINBIN | grep -Ev '^\s+ldd \(0x[0-9a-f]+\)$' | wc -l)" -eq 0 ] || (ldd $PLUGINBIN; false); \
 	done
@@ -118,7 +118,7 @@ RUN apk add --no-cache gnupg
 FROM alpine:3.13 AS podmanbase
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 RUN apk add --no-cache tzdata ca-certificates
-COPY --from=conmon /conmon/bin/conmon /usr/libexec/podman/conmon
+COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY conf/containers /etc/containers
 RUN set -ex; \
@@ -130,7 +130,7 @@ RUN set -ex; \
 	chown -R podman:podman /podman; \
 	mkdir -m1777 /.local /.config /.cache; \
 	podman --help >/dev/null; \
-	/usr/libexec/podman/conmon --help >/dev/null
+	/usr/local/lib/podman/conmon --help >/dev/null
 ENV _CONTAINERS_USERNS_CONFIGURED=""
 
 # Build rootless podman base image (without OCI runtime)
@@ -165,5 +165,5 @@ COPY conf/crun-containers.conf /etc/containers/containers.conf
 FROM rootlesspodmanrunc AS podmanall
 RUN apk add --no-cache iptables ip6tables
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
-COPY --from=cniplugins /usr/libexec/cni /usr/libexec/cni
+COPY --from=cniplugins /usr/local/lib/cni /usr/local/lib/cni
 COPY conf/cni /etc/cni
