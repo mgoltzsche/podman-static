@@ -27,11 +27,14 @@ RUN git clone -c 'advice.detachedHead=false' --branch ${BATS_VERSION} https://gi
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
 ARG PODMAN_VERSION=v3.2.3
+ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'
+ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
 RUN set -ex; \
-	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
+	export CGO_ENABLED=$PODMAN_CGO; \
+	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
 	mv bin/podman /usr/local/bin/podman; \
 	podman --help >/dev/null; \
 	[ "$(ldd /usr/local/bin/podman | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman; false)
@@ -39,7 +42,6 @@ RUN set -ex; \
 
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
-# conmon 2.0.19 cannot be built currently since alpine does not provide nix package yet
 ARG CONMON_VERSION=v2.0.29
 RUN git clone -c 'advice.detachedHead=false' --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
