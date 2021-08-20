@@ -53,12 +53,13 @@ RUN set -ex; \
 # CNI plugins
 FROM podmanbuildbase AS cniplugins
 ARG CNI_PLUGIN_VERSION=v1.0.0-rc1
+ARG CNI_PLUGINS="ipam/host-local main/loopback main/bridge meta/portmap meta/tuning meta/firewall"
 RUN git clone -c 'advice.detachedHead=false' --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
 RUN set -ex; \
-	for PLUGINDIR in plugins/ipam/host-local plugins/main/loopback plugins/main/bridge plugins/meta/portmap; do \
+	for PLUGINDIR in $CNI_PLUGINS; do \
 		PLUGINBIN=/usr/local/lib/cni/$(basename $PLUGINDIR); \
-		CGO_ENABLED=0 go build -o $PLUGINBIN -ldflags "-s -w -extldflags '-static'" ./$PLUGINDIR; \
+		CGO_ENABLED=0 go build -o $PLUGINBIN -ldflags "-s -w -extldflags '-static'" ./plugins/$PLUGINDIR; \
 		[ "$(ldd $PLUGINBIN | grep -Ev '^\s+ldd \(0x[0-9a-f]+\)$' | wc -l)" -eq 0 ] || (ldd $PLUGINBIN; false); \
 	done
 
