@@ -5,10 +5,16 @@ PODMAN_MINIMAL_IMAGE ?= $(PODMAN_IMAGE)-minimal
 PODMAN_REMOTE_IMAGE ?= $(PODMAN_IMAGE)-remote
 PODMAN_SSH_IMAGE ?= mgoltzsche/podman-ssh
 
-GPG_IMAGE=gpg-signer
+GPG_IMAGE = gpg-signer
 
-ASSET_NAME=podman-linux-amd64
-BUILD_DIR=build/$(ASSET_NAME)
+BUILD_DIR = ./build
+ASSET_NAME = podman-linux-amd64
+ASSET_DIR := $(BUILD_DIR)/asset/$(ASSET_NAME)
+
+BATS_VERSION = v1.4.1
+BATS_DIR := $(BUILD_DIR)/bats-$(BATS_VERSION)
+BATS = $(BATS_DIR)/bin/bats
+BATS_TEST ?= test
 
 # TODO: Make the tests work with podman in podman (GitHub's workflow runner also supports podman)
 #DOCKER ?= $(if $(shell podman -v),podman,docker)
@@ -29,49 +35,41 @@ podman-remote:
 podman-ssh: podman
 	$(DOCKER) build --force-rm -t $(PODMAN_SSH_IMAGE) -f Dockerfile-ssh --build-arg BASEIMAGE=$(PODMAN_IMAGE) .
 
-test: test-local-rootless test-local-rootful test-minimal-image podman-remote
+test: test-use-cases test-minimal-image
 
-test-local-rootful: podman storage-dir
-	IMAGE=$(PODMAN_IMAGE) ./test/test-local-rootful.sh
-
-test-local-rootless: podman storage-dir
-	IMAGE=$(PODMAN_IMAGE) ./test/test-local-rootless.sh
-
-test-minimal-image: podman-minimal storage-dir
-	IMAGE=$(PODMAN_MINIMAL_IMAGE) TEST_PREDICATE=MINIMAL SKIP_PORTMAPPING_TEST=true ./test/test-local-rootless.sh
-
-storage-dir: clean-storage-dir
-	mkdir -p test/storage/root
-	mkdir -pm 1777 test/storage/user
-
-clean-storage-dir:
-	$(DOCKER) run --rm -v "`pwd`/test:/test" alpine:3.13 rm -rf /test/storage
-
-test-remote: podman podman-remote
+test-use-cases: $(BATS)
+	DOCKER=$(DOCKER) \
 	PODMAN_IMAGE=$(PODMAN_IMAGE) \
 	PODMAN_REMOTE_IMAGE=$(PODMAN_REMOTE_IMAGE) \
-		./test/test-remote.sh
+	$(BATS) -T $(BATS_TEST)
+
+test-minimal-image: $(BATS)
+	DOCKER=$(DOCKER) \
+	PODMAN_IMAGE=$(PODMAN_MINIMAL_IMAGE) \
+	TEST_PREFIX=minimal \
+	TEST_SKIP_PORTMAPPING=true \
+	$(BATS) -T test/rootless.bats
 
 install:
-	cp -r build/podman-linux-amd64/usr build/podman-linux-amd64/etc /
+	cp -r $(ASSET_DIR)/usr $(ASSET_DIR)/etc /
 
 tar: .podman-from-container
-	rm -f $(BUILD_DIR).tar.gz
-	tar -C build -czvf $(BUILD_DIR).tar.gz $(ASSET_NAME)
+	rm -f $(ASSET_DIR).tar.gz
+	tar -C $(ASSET_DIR)/.. -czvf $(ASSET_DIR).tar.gz $(ASSET_NAME)
 
 .podman-from-container: podman
-	rm -rf $(BUILD_DIR)
-	mkdir -p $(BUILD_DIR)/etc $(BUILD_DIR)/usr/local/bin $(BUILD_DIR)/usr/local/lib
-	cp -r conf/containers $(BUILD_DIR)/etc/containers
-	cp -r conf/cni $(BUILD_DIR)/etc/cni
-	cp README.md $(BUILD_DIR)/
+	rm -rf $(ASSET_DIR)
+	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local/bin $(ASSET_DIR)/usr/local/lib
+	cp -r conf/containers $(ASSET_DIR)/etc/containers
+	cp -r conf/cni $(ASSET_DIR)/etc/cni
+	cp README.md $(ASSET_DIR)/
 	set -e; \
 	CONTAINER=`$(DOCKER) create $(PODMAN_IMAGE)`; \
 	for BINARY in podman runc fusermount3 fuse-overlayfs slirp4netns; do \
-		$(DOCKER) cp $$CONTAINER:/usr/local/bin/$$BINARY $(BUILD_DIR)/usr/local/bin/; \
+		$(DOCKER) cp $$CONTAINER:/usr/local/bin/$$BINARY $(ASSET_DIR)/usr/local/bin/; \
 	done; \
-	$(DOCKER) cp $$CONTAINER:/usr/local/lib/podman $(BUILD_DIR)/usr/local/lib/podman; \
-	$(DOCKER) cp $$CONTAINER:/usr/local/lib/cni $(BUILD_DIR)/usr/local/lib/cni; \
+	$(DOCKER) cp $$CONTAINER:/usr/local/lib/podman $(ASSET_DIR)/usr/local/lib/podman; \
+	$(DOCKER) cp $$CONTAINER:/usr/local/lib/cni $(ASSET_DIR)/usr/local/lib/cni; \
 	$(DOCKER) rm $$CONTAINER
 
 signed-tar: tar .gpg
@@ -85,8 +83,8 @@ signed-tar: tar .gpg
 			set -e; \
 			[ "$$GPG_SIGN_KEY" -a "$$GPG_SIGN_KEY_PASSPHRASE" ] || (echo Missing GPG_SIGN_KEY or GPG_SIGN_KEY_PASSPHRASE >&2; false); \
 			echo "$$GPG_SIGN_KEY" | gpg --batch --import -; \
-			rm -f $(BUILD_DIR).tar.gz.asc; \
-			echo "$$GPG_SIGN_KEY_PASSPHRASE" | (set -x; gpg --pinentry-mode loopback --command-fd 0 -a -o $(BUILD_DIR).tar.gz.asc --detach-sign $(BUILD_DIR).tar.gz)'
+			rm -f $(ASSET_DIR).tar.gz.asc; \
+			echo "$$GPG_SIGN_KEY_PASSPHRASE" | (set -x; gpg --pinentry-mode loopback --command-fd 0 -a -o $(ASSET_DIR).tar.gz.asc --detach-sign $(ASSET_DIR).tar.gz)'
 
 verify-signature:
 	( \
@@ -95,7 +93,7 @@ verify-signature:
 			export GNUPGHOME=$$TMPDIR; \
 			gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 0CCF102C4F95D89E583FF1D4F8B5AF50344BB503 && \
 			gpg --list-keys && \
-			gpg --batch --verify $(BUILD_DIR).tar.gz.asc $(BUILD_DIR).tar.gz && \
+			gpg --batch --verify $(ASSET_DIR).tar.gz.asc $(ASSET_DIR).tar.gz && \
 			rm -rf $$TMPDIR && \
 			exit 0 || \
 			sleep 1; \
@@ -112,8 +110,8 @@ run:
 		-v "`pwd`/test/storage/user":/podman/.local/share/containers/storage \
 		$(PODMAN_IMAGE) /bin/sh
 
-clean: clean-storage-dir
-	rm -rf build
+clean:
+	$(DOCKER) run --rm -v "`pwd`:/work" alpine:3.13 rm -rf /work/build
 
 run-server: podman-ssh
 	# TODO: make sshd log to stdout (while still ensuring that we know when it is available)
@@ -143,3 +141,14 @@ run-client: podman-remote
 		/bin/sh -c 'set -ex; \
 			podman --url=$$PODMAN_URL --log-level=info build /build/test'
 #ssh -o "StrictHostKeyChecking no" -i /build/client_rsa podman@127.0.0.1 -p 2222 echo hello
+
+$(BATS):
+	@echo Downloading bats
+	@{ \
+	set -e ;\
+	rm -rf $(BATS_DIR).tmp ;\
+	mkdir -p $(BATS_DIR).tmp ;\
+	git clone -c 'advice.detachedHead=false' --branch v1.3.0 https://github.com/bats-core/bats-core.git $(BATS_DIR).tmp >/dev/null ;\
+	$(BATS_DIR).tmp/install.sh "$(BATS_DIR)" ;\
+	rm -rf $(BATS_DIR).tmp ;\
+	}

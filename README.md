@@ -6,7 +6,7 @@ This project provides alpine-based podman container images and statically linked
 * [conmon](https://github.com/containers/conmon)
 * [fuse-overlayfs](https://github.com/containers/fuse-overlayfs) and [libfuse](https://github.com/libfuse/libfuse)
 * [slirp4netns](https://github.com/rootless-containers/slirp4netns) (with [libslirp](https://gitlab.freedesktop.org/slirp/libslirp))
-* [CNI plugins](https://github.com/containernetworking/plugins): loopback, bridge, host-local, portmap
+* [CNI plugins](https://github.com/containernetworking/plugins): loopback, bridge, host-local, portmap, firewall, tuning
 
 ## Container image
 
@@ -82,6 +82,5 @@ The default storage location depends on the user:
 ## Local build & test
 
 ```sh
-make
-make test
+make images test
 ```
