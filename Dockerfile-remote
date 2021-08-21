@@ -11,7 +11,7 @@ RUN git clone -c 'advice.detachedHead=false' --branch ${BATS_VERSION} https://gi
 # podman remote
 FROM podmanbuildbase AS podman-remote
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v3.2.3
+ARG PODMAN_VERSION=v3.3.0
 RUN git clone -c 'advice.detachedHead=false' --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
