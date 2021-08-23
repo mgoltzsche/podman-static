@@ -1,5 +1,5 @@
 # runc
-FROM golang:1.16-alpine3.13 AS runc
+FROM golang:1.16-alpine3.14 AS runc
 ARG RUNC_VERSION=v1.0.1
 RUN set -eux; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev libseccomp-static make git bash; \
@@ -13,13 +13,13 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.16-alpine3.13 AS podmanbuildbase
+FROM golang:1.16-alpine3.14 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
 	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables \
 	bash go-md2man
-ARG BATS_VERSION=v1.3.0
+ARG BATS_VERSION=v1.4.1
 RUN git clone -c 'advice.detachedHead=false' --branch ${BATS_VERSION} https://github.com/bats-core/bats-core.git && cd bats-core && ./install.sh /usr/local
 
 
@@ -112,11 +112,11 @@ RUN set -ex; \
 
 
 # Download gpg
-FROM alpine:3.13 AS gpg
+FROM alpine:3.14 AS gpg
 RUN apk add --no-cache gnupg
 
 # Build podman base image
-FROM alpine:3.13 AS podmanbase
+FROM alpine:3.14 AS podmanbase
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon

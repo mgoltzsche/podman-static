@@ -24,7 +24,7 @@ teardown_file() {
 
 @test "remote podman - run container" {
 	$DOCKER run --rm --network=host "${PODMAN_REMOTE_IMAGE}" \
-		podman --url=tcp://$PODMAN_ADDRESS run alpine:3.13 echo hello from remote container
+		podman --url=tcp://$PODMAN_ADDRESS run alpine:3.14 echo hello from remote container
 }
 
 @test "remote podman - build image from dockerfile" {
@@ -33,7 +33,7 @@ teardown_file() {
 		"${PODMAN_REMOTE_IMAGE}" \
 		sh -c "set -ex; \
 			mkdir /tmp/testcontext
-			printf 'FROM alpine:3.13\nRUN echo hello\nCMD [ "/bin/echo", "hello" ]' > /tmp/testcontext/Dockerfile
+			printf 'FROM alpine:3.14\nRUN echo hello\nCMD [ "/bin/echo", "hello" ]' > /tmp/testcontext/Dockerfile
 			podman --log-level=debug --remote --url=tcp://$PODMAN_ADDRESS build -t testbuild -f /tmp/testcontext/Dockerfile /tmp/testcontext; \
 			podman --url=tcp://$PODMAN_ADDRESS run testbuild echo hello from remote container"
 }

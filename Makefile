@@ -111,7 +111,7 @@ run:
 		$(PODMAN_IMAGE) /bin/sh
 
 clean:
-	$(DOCKER) run --rm -v "`pwd`:/work" alpine:3.13 rm -rf /work/build
+	$(DOCKER) run --rm -v "`pwd`:/work" alpine:3.14 rm -rf /work/build
 
 run-server: podman-ssh
 	# TODO: make sshd log to stdout (while still ensuring that we know when it is available)
