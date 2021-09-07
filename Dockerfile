@@ -1,6 +1,6 @@
 # runc
 FROM golang:1.16-alpine3.14 AS runc
-ARG RUNC_VERSION=v1.0.1
+ARG RUNC_VERSION=v1.0.2
 RUN set -eux; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev libseccomp-static make git bash; \
 	git clone -c 'advice.detachedHead=false' --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
@@ -26,7 +26,7 @@ RUN git clone -c 'advice.detachedHead=false' --branch ${BATS_VERSION} https://gi
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v3.3.0
+ARG PODMAN_VERSION=v3.3.1
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -89,7 +89,7 @@ RUN set -ex; \
 # fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
 RUN apk add --update --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
-ARG LIBFUSE_VERSION=fuse-3.10.4
+ARG LIBFUSE_VERSION=fuse-3.10.5
 RUN git clone -c 'advice.detachedHead=false' --branch=$LIBFUSE_VERSION https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -ex; \
@@ -148,7 +148,7 @@ COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 # Download crun
 # (switched keyserver from sks to ubuntu since sks is offline now and gpg refuses to import keys from keys.openpgp.org because it does not provide a user ID with the key.)
 FROM gpg AS crun
-ARG CRUN_VERSION=0.21
+ARG CRUN_VERSION=1.0
 RUN set -ex; \
 	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd; \
 	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd.asc; \
