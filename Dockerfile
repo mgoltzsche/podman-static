@@ -3,7 +3,7 @@ FROM golang:1.16-alpine3.14 AS runc
 ARG RUNC_VERSION=v1.0.2
 RUN set -eux; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev libseccomp-static make git bash; \
-	git clone -c 'advice.detachedHead=false' --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
+	git clone -c 'advice.detachedHead=false' --depth=1 --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
 	cd src/github.com/opencontainers/runc; \
 	make static BUILDTAGS='seccomp selinux ambient'; \
 	mv runc /usr/local/bin/runc; \
@@ -20,7 +20,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables \
 	bash go-md2man
 ARG BATS_VERSION=v1.4.1
-RUN git clone -c 'advice.detachedHead=false' --branch ${BATS_VERSION} https://github.com/bats-core/bats-core.git && cd bats-core && ./install.sh /usr/local
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${BATS_VERSION} https://github.com/bats-core/bats-core.git && cd bats-core && ./install.sh /usr/local
 
 
 # podman (without systemd support)
@@ -29,7 +29,7 @@ RUN apk add --update --no-cache tzdata curl
 ARG PODMAN_VERSION=v3.3.1
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'
 ARG PODMAN_CGO=1
-RUN git clone -c 'advice.detachedHead=false' --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
 RUN set -ex; \
@@ -43,7 +43,7 @@ RUN set -ex; \
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
 ARG CONMON_VERSION=v2.0.29
-RUN git clone -c 'advice.detachedHead=false' --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -ex; \
 	make git-vars bin/conmon PKG_CONFIG='pkg-config --static' CFLAGS='-std=c99 -Os -Wall -Wextra -Werror -static' LDFLAGS='-s -w -static'; \
@@ -54,7 +54,7 @@ RUN set -ex; \
 FROM podmanbuildbase AS cniplugins
 ARG CNI_PLUGIN_VERSION=v1.0.0
 ARG CNI_PLUGINS="ipam/host-local main/loopback main/bridge meta/portmap meta/tuning meta/firewall"
-RUN git clone -c 'advice.detachedHead=false' --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
 RUN set -ex; \
 	for PLUGINDIR in $CNI_PLUGINS; do \
@@ -70,7 +70,7 @@ WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev
 # Build libslirp
 ARG LIBSLIRP_VERSION=v4.6.1
-RUN git clone -c 'advice.detachedHead=false' --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
 WORKDIR /libslirp
 RUN set -ex; \
 	LDFLAGS="-s -w -static" meson --prefix /usr -D default_library=static build; \
@@ -78,7 +78,7 @@ RUN set -ex; \
 # Build slirp4netns
 WORKDIR /
 ARG SLIRP4NETNS_VERSION=v1.1.12
-RUN git clone -c 'advice.detachedHead=false' --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
 RUN set -ex; \
 	./autogen.sh; \
@@ -90,7 +90,7 @@ RUN set -ex; \
 FROM podmanbuildbase AS fuse-overlayfs
 RUN apk add --update --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
 ARG LIBFUSE_VERSION=fuse-3.10.5
-RUN git clone -c 'advice.detachedHead=false' --branch=$LIBFUSE_VERSION https://github.com/libfuse/libfuse /libfuse
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$LIBFUSE_VERSION https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -ex; \
 	mkdir build; \
@@ -101,7 +101,7 @@ RUN set -ex; \
 	ninja install; \
 	fusermount3 -V
 ARG FUSEOVERLAYFS_VERSION=v1.7.1
-RUN git clone -c 'advice.detachedHead=false' --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -ex; \
 	sh autogen.sh; \
