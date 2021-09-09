@@ -148,7 +148,7 @@ $(BATS):
 	set -e ;\
 	rm -rf $(BATS_DIR).tmp ;\
 	mkdir -p $(BATS_DIR).tmp ;\
-	git clone -c 'advice.detachedHead=false' --branch v1.4.1 https://github.com/bats-core/bats-core.git $(BATS_DIR).tmp >/dev/null ;\
+	git clone -c 'advice.detachedHead=false' --depth=1 --branch v1.4.1 https://github.com/bats-core/bats-core.git $(BATS_DIR).tmp >/dev/null ;\
 	$(BATS_DIR).tmp/install.sh "$(BATS_DIR)" ;\
 	rm -rf $(BATS_DIR).tmp ;\
 	}
