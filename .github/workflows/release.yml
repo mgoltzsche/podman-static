@@ -25,7 +25,9 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Set up qemu
-      run: make register-qemu-binfmt
+      uses: docker/setup-qemu-action@master
+      with:
+        platforms: all
 
     - name: Build & Test
       run: make images test

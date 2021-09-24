@@ -1,3 +1,8 @@
+# Download gpg
+FROM alpine:3.14 AS gpg
+RUN apk add --no-cache gnupg
+
+
 # runc
 FROM golang:1.16-alpine3.14 AS runc
 ARG RUNC_VERSION=v1.0.2
@@ -110,10 +115,6 @@ RUN set -ex; \
 	make install; \
 	fuse-overlayfs --help >/dev/null
 
-
-# Download gpg
-FROM alpine:3.14 AS gpg
-RUN apk add --no-cache gnupg
 
 # Build podman base image
 FROM alpine:3.14 AS podmanbase

@@ -135,7 +135,7 @@ verify-signature:
 	)
 
 .gpg:
-	$(DOCKER) build --force-rm -t $(GPG_IMAGE) --target gpg .
+	$(DOCKER) buildx build $(BUILDX_OPTS) --force-rm -t $(GPG_IMAGE) --target gpg .
 
 run:
 	$(DOCKER) run -ti --rm --privileged \
