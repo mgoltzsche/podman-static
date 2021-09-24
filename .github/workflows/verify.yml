@@ -15,5 +15,12 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v2
 
-    - name: Build & Test
-      run: make podman podman-minimal podman-remote test
+    - name: Set up qemu
+      run: make register-qemu-binfmt
+
+    - name: Build & test linux/amd64 image
+      run: make images test
+
+    - name: Build multi-arch images and binaries
+      run: make multiarch-tar
+

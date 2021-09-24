@@ -4,12 +4,13 @@ PODMAN_IMAGE_TARGET ?= podmanall
 PODMAN_MINIMAL_IMAGE ?= $(PODMAN_IMAGE)-minimal
 PODMAN_REMOTE_IMAGE ?= $(PODMAN_IMAGE)-remote
 PODMAN_SSH_IMAGE ?= mgoltzsche/podman-ssh
+PODMAN_BUILD_OPTS ?= -t $(PODMAN_IMAGE)
+PODMAN_MINIMAL_BUILD_OPTS ?= -t $(PODMAN_MINIMAL_IMAGE)
+PODMAN_REMOTE_BUILD_OPTS ?= -t $(PODMAN_REMOTE_IMAGE)
 
 GPG_IMAGE = gpg-signer
 
 BUILD_DIR = ./build
-ASSET_NAME = podman-linux-amd64
-ASSET_DIR := $(BUILD_DIR)/asset/$(ASSET_NAME)
 
 BATS_VERSION = v1.4.1
 BATS_DIR := $(BUILD_DIR)/bats-$(BATS_VERSION)
@@ -20,20 +21,56 @@ BATS_TEST ?= test
 #DOCKER ?= $(if $(shell podman -v),podman,docker)
 DOCKER ?= docker
 export DOCKER
+PLATFORM ?= linux/amd64
+ARCH = $(shell echo "$(PLATFORM)" | sed -E 's!linux/([^/]+).*!\1!')
+IMAGE_EXPORT_DIR = $(BUILD_DIR)/images/$@
+BUILDX_BUILDER ?= podman-builder
+# TODO: just push the other image and build tar files from output, skip tests for other platforms for now
+BUILDX_OUTPUT ?= type=docker
+BUILDX_OPTS ?= --builder=$(BUILDX_BUILDER) --output=$(BUILDX_OUTPUT) --platform=$(PLATFORM)
+
+ASSET_NAME := podman-linux-$(ARCH)
+ASSET_DIR := $(BUILD_DIR)/asset/$(ASSET_NAME)
 
 images: podman podman-remote podman-minimal
 
-podman:
-	$(DOCKER) build --force-rm -t $(PODMAN_IMAGE) --target $(PODMAN_IMAGE_TARGET) .
+multiarch-tar multiarch-images: PLATFORM = linux/arm64/v8,linux/amd64
+multiarch-tar: BUILDX_OUTPUT = type=local,dest=$(IMAGE_EXPORT_DIR)
+multiarch-tar: TAR_TARGET ?= tar
+multiarch-tar: images tar-all
 
-podman-minimal:
-	make podman PODMAN_IMAGE=$(PODMAN_MINIMAL_IMAGE) PODMAN_IMAGE_TARGET=rootlesspodmanminimal
+multiarch-images: BUILDX_OUTPUT = type=image
+multiarch-images: images
 
-podman-remote:
-	$(DOCKER) build --force-rm -t $(PODMAN_REMOTE_IMAGE) -f Dockerfile-remote .
+tar-all:
+	@{ \
+	set -e ;\
+	for PLATFORM in `echo "$(PLATFORM)" | sed 's/,/ /g'`; do \
+		printf '\nBuilding podman for %s...\n\n' "$$PLATFORM" ;\
+		make $(TAR_TARGET) PLATFORM="$$PLATFORM" BUILDX_BUILDER="$(BUILDX_BUILDER)" ;\
+	done ;\
+	}
+
+podman: create-builder
+	$(DOCKER) buildx build $(BUILDX_OPTS) --force-rm $(PODMAN_BUILD_OPTS) --target $(PODMAN_IMAGE_TARGET) .
+
+podman-minimal: create-builder
+	make podman PODMAN_IMAGE_TARGET=rootlesspodmanminimal BUILDX_OPTS="$(BUILDX_OPTS)" PODMAN_BUILD_OPTS="$(PODMAN_MINIMAL_BUILD_OPTS)"
+
+podman-remote: create-builder
+	$(DOCKER) buildx build $(BUILDX_OPTS) --force-rm $(PODMAN_REMOTE_BUILD_OPTS) -f Dockerfile-remote .
 
 podman-ssh: podman
-	$(DOCKER) build --force-rm -t $(PODMAN_SSH_IMAGE) -f Dockerfile-ssh --build-arg BASEIMAGE=$(PODMAN_IMAGE) .
+	$(DOCKER) buildx build $(BUILDX_OPTS) --force-rm -t $(PODMAN_SSH_IMAGE) -f Dockerfile-ssh --build-arg BASEIMAGE=$(PODMAN_IMAGE) .
+
+create-builder:
+	$(DOCKER) buildx inspect $(BUILDX_BUILDER) >/dev/null 2<&1 || $(DOCKER) buildx create --name=$(BUILDX_BUILDER) >/dev/null
+
+delete-builder:
+	$(DOCKER) buildx rm $(BUILDX_BUILDER)
+
+register-qemu-binfmt:
+	$(DOCKER) run --rm --privileged multiarch/qemu-user-static:5.2.0-2 --reset -p yes
 
 test: test-use-cases test-minimal-image
 
@@ -57,20 +94,15 @@ tar: .podman-from-container
 	rm -f $(ASSET_DIR).tar.gz
 	tar -C $(ASSET_DIR)/.. -czvf $(ASSET_DIR).tar.gz $(ASSET_NAME)
 
+.podman-from-container: IMAGE_ROOTFS = $(BUILD_DIR)/images/podman/linux_$(ARCH)
 .podman-from-container: podman
 	rm -rf $(ASSET_DIR)
-	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local/bin $(ASSET_DIR)/usr/local/lib
+	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local
 	cp -r conf/containers $(ASSET_DIR)/etc/containers
 	cp -r conf/cni $(ASSET_DIR)/etc/cni
 	cp README.md $(ASSET_DIR)/
-	set -e; \
-	CONTAINER=`$(DOCKER) create $(PODMAN_IMAGE)`; \
-	for BINARY in podman runc fusermount3 fuse-overlayfs slirp4netns; do \
-		$(DOCKER) cp $$CONTAINER:/usr/local/bin/$$BINARY $(ASSET_DIR)/usr/local/bin/; \
-	done; \
-	$(DOCKER) cp $$CONTAINER:/usr/local/lib/podman $(ASSET_DIR)/usr/local/lib/podman; \
-	$(DOCKER) cp $$CONTAINER:/usr/local/lib/cni $(ASSET_DIR)/usr/local/lib/cni; \
-	$(DOCKER) rm $$CONTAINER
+	cp -r $(IMAGE_ROOTFS)/usr/local/lib $(ASSET_DIR)/usr/local/lib
+	cp -r $(IMAGE_ROOTFS)/usr/local/bin $(ASSET_DIR)/usr/local/bin
 
 signed-tar: tar .gpg
 	@echo Running gpg signing container with GPG_SIGN_KEY and GPG_SIGN_KEY_PASSPHRASE

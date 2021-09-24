@@ -27,7 +27,7 @@ RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${BATS_VERSION} 
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
 ARG PODMAN_VERSION=v3.3.1
-ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'
+ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman

@@ -10,7 +10,7 @@ PODMAN_DATA_DIR="$BATS_TEST_DIRNAME/../build/test-storage/user"
 
 setup_file() {
 	mkdir -pm1777 "$PODMAN_DATA_DIR"
-	$DOCKER run --name=$PODMAN_CONTAINER -d --rm --privileged \
+	$DOCKER run --name=$PODMAN_CONTAINER -d --rm --privileged --pull=never \
 		--network=host -u podman:podman \
 		-v "$PODMAN_DATA_DIR:/podman/.local/share/containers/storage" \
 		"${PODMAN_IMAGE}" \
@@ -23,13 +23,13 @@ teardown_file() {
 }
 
 @test "remote podman - run container" {
-	$DOCKER run --rm --network=host "${PODMAN_REMOTE_IMAGE}" \
+	$DOCKER run --rm --network=host --pull=never "${PODMAN_REMOTE_IMAGE}" \
 		podman --url=tcp://$PODMAN_ADDRESS run alpine:3.14 echo hello from remote container
 }
 
 @test "remote podman - build image from dockerfile" {
 	# ATTENTION: podman remote fails if it cannot map the uids/gids from the server locally as well (which is why podman-remote user has been added)
-	$DOCKER run --rm --network=host --user=podman-remote:podman-remote \
+	$DOCKER run --rm --network=host --user=podman-remote:podman-remote --pull=never \
 		"${PODMAN_REMOTE_IMAGE}" \
 		sh -c "set -ex; \
 			mkdir /tmp/testcontext

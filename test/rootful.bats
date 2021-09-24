@@ -17,7 +17,7 @@ skipIfDockerUnavailableAndNotRunAsRoot() {
 	skipIfDockerUnavailableAndNotRunAsRoot
 	$DOCKER run --rm --privileged --entrypoint /bin/sh -u root:root \
 		-v "$PODMAN_ROOT_DATA_DIR:/var/lib/containers/storage" \
-		"${PODMAN_IMAGE}" \
+		--pull=never "${PODMAN_IMAGE}" \
 		-c 'podman run --rm alpine:3.14 wget -O /dev/null http://example.org'
 }
 
@@ -25,7 +25,7 @@ skipIfDockerUnavailableAndNotRunAsRoot() {
 	skipIfDockerUnavailableAndNotRunAsRoot
 	$DOCKER run --rm --privileged --entrypoint /bin/sh -u root:root \
 		-v "$PODMAN_ROOT_DATA_DIR:/var/lib/containers/storage" \
-		"${PODMAN_IMAGE}" \
+		--pull=never "${PODMAN_IMAGE}" \
 		-c 'set -e;
 			podman build -t podmantestimage -f - . <<-EOF
 				FROM alpine:latest
