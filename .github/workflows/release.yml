@@ -29,14 +29,17 @@ jobs:
       with:
         platforms: all
 
-    - name: Build & Test
-      run: make images test
+#    - name: Build & Test
+#      run: make images test
 
-    - name: Build signed archive
-      run: make multiarch-tar TAR_TARGET=signed-tar
-      env:
-        GPG_SIGN_KEY: ${{ secrets.GPG_SIGN_KEY }}
-        GPG_SIGN_KEY_PASSPHRASE: ${{ secrets.GPG_SIGN_KEY_PASSPHRASE }}
+#    - name: Build signed archive
+#      run: make multiarch-tar TAR_TARGET=signed-tar
+#      env:
+#        GPG_SIGN_KEY: ${{ secrets.GPG_SIGN_KEY }}
+#        GPG_SIGN_KEY_PASSPHRASE: ${{ secrets.GPG_SIGN_KEY_PASSPHRASE }}
+
+    - name: Create buildx builder
+      run: make create-builder
 
     - name: Log into GitHub registry
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
@@ -66,7 +69,7 @@ jobs:
           TAG_OPTS=
           for TAG in $IMAGE_TAGS; do
             [ "$TAG" = "$LATEST_TAG" ] || TAG="${TAG}${TAG_SUFFIX}"
-            TAG_OPTS="$TAG_OPTS -t $DOCKERHUB_IMAGE_REPO:$TAG -t $GITHUB_IMAGE_REPO:$TAG"
+            TAG_OPTS="$TAG_OPTS -t $DOCKERHUB_IMAGE_REPO:$TAG"
           done
           make "$IMAGE" PODMAN_BUILD_OPTS="$TAG_OPTS" PODMAN_MINIMAL_BUILD_OPTS="$TAG_OPTS" PODMAN_REMOTE_BUILD_OPTS="$TAG_OPTS"
         done

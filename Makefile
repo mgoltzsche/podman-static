@@ -66,6 +66,7 @@ podman-ssh: podman
 create-builder:
 	# specify the buildx driver version explicitly in order to workaround https://github.com/docker/buildx/issues/327
 	$(DOCKER) buildx inspect $(BUILDX_BUILDER) >/dev/null 2<&1 || $(DOCKER) buildx create --name=$(BUILDX_BUILDER) --driver-opt=image=moby/buildkit:v0.9.0 >/dev/null
+	$(DOCKER) buildx inspect $(BUILDX_BUILDER)
 
 delete-builder:
 	$(DOCKER) buildx rm $(BUILDX_BUILDER)
