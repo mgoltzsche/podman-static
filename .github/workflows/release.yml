@@ -25,7 +25,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Set up qemu
-      uses: docker/setup-qemu-action@master
+      uses: docker/setup-qemu-action@v1
       with:
         platforms: all
 
@@ -37,6 +37,9 @@ jobs:
       env:
         GPG_SIGN_KEY: ${{ secrets.GPG_SIGN_KEY }}
         GPG_SIGN_KEY_PASSPHRASE: ${{ secrets.GPG_SIGN_KEY_PASSPHRASE }}
+
+    - name: Create builder
+      run: make create-builder
 
     - name: Log into GitHub registry
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin

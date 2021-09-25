@@ -65,6 +65,7 @@ podman-ssh: podman
 
 create-builder:
 	$(DOCKER) buildx inspect $(BUILDX_BUILDER) >/dev/null 2<&1 || $(DOCKER) buildx create --name=$(BUILDX_BUILDER) >/dev/null
+	$(DOCKER) buildx use --builder=$(BUILDX_BUILDER)
 
 delete-builder:
 	$(DOCKER) buildx rm $(BUILDX_BUILDER)
