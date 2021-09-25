@@ -64,8 +64,8 @@ podman-ssh: podman
 	$(DOCKER) buildx build $(BUILDX_OPTS) --force-rm -t $(PODMAN_SSH_IMAGE) -f Dockerfile-ssh --build-arg BASEIMAGE=$(PODMAN_IMAGE) .
 
 create-builder:
-	$(DOCKER) buildx inspect $(BUILDX_BUILDER) >/dev/null 2<&1 || $(DOCKER) buildx create --name=$(BUILDX_BUILDER) >/dev/null
-	$(DOCKER) buildx use --builder=$(BUILDX_BUILDER)
+	# specify the buildx driver version explicitly in order to workaround https://github.com/docker/buildx/issues/327
+	$(DOCKER) buildx inspect $(BUILDX_BUILDER) >/dev/null 2<&1 || $(DOCKER) buildx create --name=$(BUILDX_BUILDER) --driver-opt=image=moby/buildkit:v0.9.0 >/dev/null
 
 delete-builder:
 	$(DOCKER) buildx rm $(BUILDX_BUILDER)
