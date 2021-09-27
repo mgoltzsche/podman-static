@@ -39,7 +39,7 @@ jobs:
         GPG_SIGN_KEY_PASSPHRASE: ${{ secrets.GPG_SIGN_KEY_PASSPHRASE }}
 
     - name: Log into GitHub registry
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
     - name: Log into DockerHub registry
       run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
@@ -48,7 +48,7 @@ jobs:
       run: |
         set -eu
 
-        GITHUB_IMAGE_REPO=docker.pkg.github.com/$GITHUB_REPO/podman
+        GITHUB_IMAGE_REPO=ghcr.io/$GITHUB_REPO/podman
         GITHUB_IMAGE_REPO=$(echo $GITHUB_IMAGE_REPO | tr '[A-Z]' '[a-z]')
         DOCKERHUB_IMAGE_REPO=docker.io/mgoltzsche/podman
 
@@ -63,20 +63,16 @@ jobs:
           TAG_SUFFIX=$(echo $IMAGE | sed -E -e 's/^([^-]+)//')
           LATEST_TAG="$([ "$TAG_SUFFIX" ] && echo $TAG_SUFFIX | sed -E -e 's/^-//' || echo latest)"
           [ "$TAGS" == "master" ] && IMAGE_TAGS="$LATEST_TAG" || IMAGE_TAGS="$LATEST_TAG $TAGS"
-          DOCKERHUB_IMAGE_OPTS=
-          GITHUB_IMAGE_OPTS=
-          printf 'Pushing image tags:'
+          TAG_OPTS=
+          printf 'Pushing image tags: '
           for TAG in $IMAGE_TAGS; do
             [ "$TAG" = "$LATEST_TAG" ] || TAG="${TAG}${TAG_SUFFIX}"
-            DOCKERHUB_IMAGE_OPTS="$DOCKERHUB_IMAGE_OPTS -t $DOCKERHUB_IMAGE_REPO:$TAG"
-            GITHUB_IMAGE_OPTS="$GITHUB_IMAGE_OPTS -t $GITHUB_IMAGE_REPO:$TAG"
+            TAG_OPTS="$TAG_OPTS -t $DOCKERHUB_IMAGE_REPO:$TAG -t $GITHUB_IMAGE_REPO:$TAG"
             printf ' %s' "$TAG"
           done
           echo
-          echo "Pushing $IMAGE image to $DOCKERHUB_IMAGE_REPO..."
-          make "$IMAGE" PODMAN_BUILD_OPTS="$DOCKERHUB_IMAGE_OPTS" PODMAN_MINIMAL_BUILD_OPTS="$DOCKERHUB_IMAGE_OPTS" PODMAN_REMOTE_BUILD_OPTS="$DOCKERHUB_IMAGE_OPTS"
-          echo "Pushing $IMAGE image to $GITHUB_IMAGE_REPO..."
-          make "$IMAGE" PODMAN_BUILD_OPTS="$GITHUB_IMAGE_OPTS" PODMAN_MINIMAL_BUILD_OPTS="$GITHUB_IMAGE_OPTS" PODMAN_REMOTE_BUILD_OPTS="$GITHUB_IMAGE_OPTS"
+          echo "Pushing $IMAGE image to $DOCKERHUB_IMAGE_REPO and $GITHUB_IMAGE_REPO"
+          make "$IMAGE" PODMAN_BUILD_OPTS="$TAG_OPTS" PODMAN_MINIMAL_BUILD_OPTS="$TAG_OPTS" PODMAN_REMOTE_BUILD_OPTS="$TAG_OPTS"
         done
       env:
         BUILDX_OUTPUT: type=registry
