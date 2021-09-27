@@ -32,7 +32,7 @@ jobs:
     - name: Build & test
       run: make images test
 
-    - name: Build signed archive
+    - name: Build signed archives
       run: make multiarch-tar TAR_TARGET=signed-tar
       env:
         GPG_SIGN_KEY: ${{ secrets.GPG_SIGN_KEY }}
@@ -116,7 +116,7 @@ jobs:
         asset_name: podman-linux-arm64.tar.gz
         asset_content_type: application/octet-stream
 
-    - name: Upload amd64 archive Signature
+    - name: Upload amd64 archive signature
       if: github.ref != 'refs/heads/master'
       id: upload-amd64-archive-signature
       uses: actions/upload-release-asset@v1
