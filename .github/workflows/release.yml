@@ -48,7 +48,7 @@ jobs:
       run: |
         set -eu
 
-        GITHUB_IMAGE_REPO=ghcr.io/$GITHUB_REPO/podman
+        GITHUB_IMAGE_REPO=ghcr.io/mgoltzsche/podman
         GITHUB_IMAGE_REPO=$(echo $GITHUB_IMAGE_REPO | tr '[A-Z]' '[a-z]')
         DOCKERHUB_IMAGE_REPO=docker.io/mgoltzsche/podman
 
@@ -78,7 +78,6 @@ jobs:
         BUILDX_OUTPUT: type=registry
         PLATFORM: linux/arm64/v8,linux/amd64
         GITHUB_REF: ${{ github.ref }}
-        GITHUB_REPO: ${{ github.repository }}
 
     - name: Create release
       if: github.ref != 'refs/heads/master'

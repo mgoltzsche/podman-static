@@ -1,6 +1,6 @@
 # podman binaries and container images ![GitHub workflow badge](https://github.com/mgoltzsche/podman-static/workflows/Release/badge.svg)
 
-This project provides alpine-based podman container images and statically linked (rootless) podman binaries for linux-amd64 along with its dependencies _(without systemd support)_:
+This project provides alpine-based podman container images and statically linked (rootless) podman binaries for linux/amd64 and linux/arm64/v8 machines along with its dependencies _(without systemd support)_:
 * [podman](https://github.com/containers/podman)
 * [runc](https://github.com/opencontainers/runc/) or [crun](https://github.com/containers/crun)
 * [conmon](https://github.com/containers/conmon)
@@ -32,6 +32,8 @@ docker run --privileged -u podman:podman mgoltzsche/podman:minimal docker run al
 _Within the container `docker` is linked to `podman` to support applications that use the `docker` command._
 
 ## Binary installation on a host
+
+_In case you're using an arm64 machine (e.g. a Raspberry Pi), you need to substitute "amd64" with "arm64" within the commands below to make the installation work for you._  
 
 Download the statically linked binaries of podman and its dependencies:
 ```sh
@@ -65,7 +67,7 @@ To support applications that use the `docker` command you may want to link it to
 sudo ln -s /usr/local/bin/podman /usr/local/bin/docker
 ```
 
-Before updating binaries on your host please terminate all corresponding processes.
+Before updating binaries on your host please terminate all corresponding processes.  
 
 ### Binary usage example
 
