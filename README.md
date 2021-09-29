@@ -53,6 +53,11 @@ Install the binaries and configuration on your host after you've inspected the a
 tar -xzf podman-linux-amd64.tar.gz
 sudo cp -r podman-linux-amd64/usr podman-linux-amd64/etc /
 ```
+
+### Host configuration
+
+`nsenter`needs to be installed seperately. `uidmap` is also needed to run podman as an unprevilied user.
+
 _If you have docker installed on the same host it will be broken until you remove the newly installed `/usr/local/bin/runc` binary since docker is not compatible with the latest runc version provided here while podman is also compatible with the older runc version that comes with docker._  
 
 In order to run rootless containers that use multiple uids/gids you may want to set up a uid/gid mapping for your user on your host:
