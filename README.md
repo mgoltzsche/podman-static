@@ -56,7 +56,10 @@ sudo cp -r podman-linux-amd64/usr podman-linux-amd64/etc /
 
 ### Host configuration
 
-`nsenter`needs to be installed seperately. `uidmap` is also needed to run podman as an unprevilied user.
+The following binaries should be installed on your host:
+* `iptables`
+* `nsenter`
+* `uidmap` (for rootless mode)
 
 _If you have docker installed on the same host it will be broken until you remove the newly installed `/usr/local/bin/runc` binary since docker is not compatible with the latest runc version provided here while podman is also compatible with the older runc version that comes with docker._  
 
