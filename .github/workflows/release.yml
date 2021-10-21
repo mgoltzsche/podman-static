@@ -76,7 +76,7 @@ jobs:
         done
       env:
         BUILDX_OUTPUT: type=registry
-        PLATFORM: linux/arm64/v8,linux/amd64
+        PLATFORM: linux/arm64/v8,linux/amd64,linux/armhf
         GITHUB_REF: ${{ github.ref }}
 
     - name: Create release
@@ -113,6 +113,30 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
         asset_path: ./build/asset/podman-linux-arm64.tar.gz
         asset_name: podman-linux-arm64.tar.gz
+        asset_content_type: application/octet-stream
+
+    - name: Upload armhf archive signature
+      if: github.ref != 'refs/heads/master'
+      id: upload-armhf-archive-signature
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./build/asset/podman-linux-armhf.tar.gz.asc
+        asset_name: podman-linux-armhf.tar.gz.asc
+        asset_content_type: application/octet-stream
+
+    - name: Upload armhf archive
+      if: github.ref != 'refs/heads/master'
+      id: upload-armhf-archive
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./build/asset/podman-linux-armhf.tar.gz
+        asset_name: podman-linux-armhf.tar.gz
         asset_content_type: application/octet-stream
 
     - name: Upload amd64 archive signature

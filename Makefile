@@ -34,7 +34,7 @@ ASSET_DIR := $(BUILD_DIR)/asset/$(ASSET_NAME)
 
 images: podman podman-remote podman-minimal
 
-multiarch-tar multiarch-images: PLATFORM = linux/arm64/v8,linux/amd64
+multiarch-tar multiarch-images: PLATFORM = linux/arm64/v8,linux/amd64,linux/armhf
 multiarch-tar: BUILDX_OUTPUT = type=local,dest=$(IMAGE_EXPORT_DIR)
 multiarch-tar: TAR_TARGET ?= tar
 multiarch-tar: images tar-all
