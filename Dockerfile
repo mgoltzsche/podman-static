@@ -5,7 +5,7 @@ RUN apk add --no-cache gnupg
 
 # runc
 FROM golang:1.16-alpine3.14 AS runc
-ARG RUNC_VERSION=v1.0.2
+ARG RUNC_VERSION=v1.1.0
 RUN set -eux; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev libseccomp-static make git bash; \
 	git clone -c 'advice.detachedHead=false' --depth=1 --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
@@ -24,14 +24,14 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
 	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables \
 	bash go-md2man
-ARG BATS_VERSION=v1.4.1
+ARG BATS_VERSION=v1.5.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${BATS_VERSION} https://github.com/bats-core/bats-core.git && cd bats-core && ./install.sh /usr/local
 
 
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v3.4.2
+ARG PODMAN_VERSION=v4.0.2
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -43,11 +43,16 @@ RUN set -ex; \
 	mv bin/podman /usr/local/bin/podman; \
 	podman --help >/dev/null; \
 	[ "$(ldd /usr/local/bin/podman | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman; false)
+RUN set -ex; \
+	CGO_ENABLED=0 make bin/rootlessport BUILDFLAGS=" -mod=vendor -ldflags=\"-s -w -extldflags '-static'\""; \
+	mkdir -p /usr/local/lib/podman; \
+	mv bin/rootlessport /usr/local/lib/podman/rootlessport; \
+	[ "$(ldd /usr/local/lib/podman/rootlessport | wc -l)" -eq 0 ] || (ldd /usr/local/lib/podman/rootlessport; false)
 
 
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
-ARG CONMON_VERSION=v2.0.30
+ARG CONMON_VERSION=v2.1.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -ex; \
@@ -57,7 +62,7 @@ RUN set -ex; \
 
 # CNI plugins
 FROM podmanbuildbase AS cniplugins
-ARG CNI_PLUGIN_VERSION=v1.0.1
+ARG CNI_PLUGIN_VERSION=v1.1.1
 ARG CNI_PLUGINS="ipam/host-local main/loopback main/bridge meta/portmap meta/tuning meta/firewall"
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
 WORKDIR /go/src/github.com/containernetworking/plugins
@@ -105,7 +110,7 @@ RUN set -ex; \
 	touch /dev/fuse; \
 	ninja install; \
 	fusermount3 -V
-ARG FUSEOVERLAYFS_VERSION=v1.7.1
+ARG FUSEOVERLAYFS_VERSION=v1.8.2
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -ex; \
@@ -121,6 +126,7 @@ FROM alpine:3.14 AS podmanbase
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
+COPY --from=podman /usr/local/lib/podman/rootlessport /usr/local/lib/podman/rootlessport
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY conf/containers /etc/containers
 RUN set -ex; \
@@ -149,7 +155,7 @@ COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 # Download crun
 # (switched keyserver from sks to ubuntu since sks is offline now and gpg refuses to import keys from keys.openpgp.org because it does not provide a user ID with the key.)
 FROM gpg AS crun
-ARG CRUN_VERSION=1.3
+ARG CRUN_VERSION=1.4.4
 RUN set -ex; \
 	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd; \
 	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd.asc; \

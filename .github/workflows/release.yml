@@ -33,7 +33,7 @@ jobs:
       run: make images test
 
     - name: Build signed archives
-      run: make multiarch-tar TAR_TARGET=signed-tar
+      run: make clean multiarch-tar TAR_TARGET=signed-tar
       env:
         GPG_SIGN_KEY: ${{ secrets.GPG_SIGN_KEY }}
         GPG_SIGN_KEY_PASSPHRASE: ${{ secrets.GPG_SIGN_KEY_PASSPHRASE }}
