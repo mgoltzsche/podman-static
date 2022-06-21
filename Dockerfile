@@ -1,11 +1,11 @@
 # Download gpg
-FROM alpine:3.14 AS gpg
+FROM alpine:3.15 AS gpg
 RUN apk add --no-cache gnupg
 
 
 # runc
-FROM golang:1.16-alpine3.14 AS runc
-ARG RUNC_VERSION=v1.1.1
+FROM golang:1.18-alpine3.15 AS runc
+ARG RUNC_VERSION=v1.1.3
 RUN set -eux; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev libseccomp-static make git bash; \
 	git clone -c 'advice.detachedHead=false' --depth=1 --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
@@ -18,25 +18,22 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.16-alpine3.14 AS podmanbuildbase
+FROM golang:1.18-alpine3.15 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
 	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables \
 	bash go-md2man
-ARG BATS_VERSION=v1.6.0
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${BATS_VERSION} https://github.com/bats-core/bats-core.git && cd bats-core && ./install.sh /usr/local
 
 
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v4.1.0
+ARG PODMAN_VERSION=v4.1.1
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
-RUN make install.tools
 RUN set -ex; \
 	export CGO_ENABLED=$PODMAN_CGO; \
 	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
@@ -52,7 +49,7 @@ RUN set -ex; \
 
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
-ARG CONMON_VERSION=v2.1.0
+ARG CONMON_VERSION=v2.1.2
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -ex; \
@@ -77,17 +74,19 @@ RUN set -ex; \
 # slirp4netns
 FROM podmanbuildbase AS slirp4netns
 WORKDIR /
-RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev
+RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm
 # Build libslirp
-ARG LIBSLIRP_VERSION=v4.6.1
+ARG LIBSLIRP_VERSION=v4.7.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
 WORKDIR /libslirp
 RUN set -ex; \
+	rm -rf /usr/lib/libglib-2.0.so /usr/lib/libintl.so; \
+	ln -s /usr/bin/clang /go/bin/clang; \
 	LDFLAGS="-s -w -static" meson --prefix /usr -D default_library=static build; \
 	ninja -C build install
 # Build slirp4netns
 WORKDIR /
-ARG SLIRP4NETNS_VERSION=v1.1.12
+ARG SLIRP4NETNS_VERSION=v1.2.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
 RUN set -ex; \
@@ -110,7 +109,7 @@ RUN set -ex; \
 	touch /dev/fuse; \
 	ninja install; \
 	fusermount3 -V
-ARG FUSEOVERLAYFS_VERSION=v1.8.2
+ARG FUSEOVERLAYFS_VERSION=v1.9
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -ex; \
@@ -122,7 +121,7 @@ RUN set -ex; \
 
 
 # Build podman base image
-FROM alpine:3.14 AS podmanbase
+FROM alpine:3.15 AS podmanbase
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon

@@ -12,7 +12,7 @@ GPG_IMAGE = gpg-signer
 
 BUILD_DIR = ./build
 
-BATS_VERSION = v1.6.0
+BATS_VERSION = v1.7.0
 BATS_DIR := $(BUILD_DIR)/bats-$(BATS_VERSION)
 BATS = $(BATS_DIR)/bin/bats
 BATS_TEST ?= test
@@ -143,7 +143,7 @@ run:
 		$(PODMAN_IMAGE) /bin/sh
 
 clean:
-	$(DOCKER) run --rm -v "`pwd`:/work" alpine:3.14 rm -rf /work/build
+	$(DOCKER) run --rm -v "`pwd`:/work" alpine:3.15 rm -rf /work/build
 
 run-server: podman-ssh
 	# TODO: make sshd log to stdout (while still ensuring that we know when it is available)
