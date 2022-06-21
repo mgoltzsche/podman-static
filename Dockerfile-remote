@@ -11,7 +11,7 @@ RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${BATS_VERSION} 
 # podman remote
 FROM podmanbuildbase AS podman-remote
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v4.1.0
+ARG PODMAN_VERSION=v4.1.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN make install.tools
@@ -23,6 +23,6 @@ RUN set -eux; \
 	podman --help >/dev/null; \
 	[ "$(ldd /usr/local/bin/podman-remote | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman-remote; false)
 
-FROM alpine:3.14
+FROM alpine:3.15
 COPY --from=podman-remote /usr/local/bin /usr/local/bin
 RUN adduser -D podman-remote -h /podman -u 1000
