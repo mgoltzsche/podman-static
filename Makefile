@@ -69,8 +69,8 @@ create-builder:
 delete-builder:
 	$(DOCKER) buildx rm $(BUILDX_BUILDER)
 
-register-qemu-binfmt:
-	$(DOCKER) run --rm --privileged multiarch/qemu-user-static:6.1.0-8 --reset -p yes
+register-qemu-binfmt: ## Enable multiarch support on the host
+	$(DOCKER) run --rm --privileged multiarch/qemu-user-static:7.0.0-7 --reset -p yes
 
 test: test-use-cases test-minimal-image
 
