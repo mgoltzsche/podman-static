@@ -48,11 +48,19 @@ gpg --batch --verify podman-linux-amd64.tar.gz.asc podman-linux-amd64.tar.gz
 ```
 _This may fail every now and then due to desync/unavailable key servers. In that case please retry._  
 
+Download a specific version:
+```sh
+VERSION=<VERSION>
+curl -fsSL -o podman-linux-amd64.tar.gz https://github.com/mgoltzsche/podman-static/releases/download/$VERSION/podman-linux-amd64.tar.gz
+```
+
 Install the binaries and configuration on your host after you've inspected the archive:
 ```sh
 tar -xzf podman-linux-amd64.tar.gz
 sudo cp -r podman-linux-amd64/usr podman-linux-amd64/etc /
 ```
+
+_If you have docker installed on the same host it might be broken until you remove the newly installed `/usr/local/bin/runc` binary since older docker versions are not compatible with the latest runc version provided here while podman is also compatible with the older runc version that comes e.g. with docker 1.19 on Ubuntu._
 
 ### Host configuration
 
@@ -60,8 +68,6 @@ The following binaries should be installed on your host:
 * `iptables`
 * `nsenter`
 * `uidmap` (for rootless mode)
-
-_If you have docker installed on the same host it will be broken until you remove the newly installed `/usr/local/bin/runc` binary since docker is not compatible with the latest runc version provided here while podman is also compatible with the older runc version that comes with docker._  
 
 In order to run rootless containers that use multiple uids/gids you may want to set up a uid/gid mapping for your user on your host:
 ```
