@@ -23,11 +23,6 @@ load test_helper.bash
 }
 
 @test "$TEST_PREFIX podman - unmapped uid" {
-	if [ "$DOCKER" = podman ]; then
-		skip "DOCKER=podman"
-	fi
-	# TODO: verify if that works now
-	# this doesn't work with podman (v3.0.1) due to missing uid mapping
 	$DOCKER run --rm --privileged --user 9000:9000 \
 		--pull=never "${PODMAN_IMAGE}" \
 		docker run --rm alpine:3.14 wget -O /dev/null http://example.org
