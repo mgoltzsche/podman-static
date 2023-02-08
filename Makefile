@@ -12,7 +12,7 @@ GPG_IMAGE = gpg-signer
 
 BUILD_DIR = ./build
 
-BATS_VERSION = v1.7.0
+BATS_VERSION = v1.8.2
 BATS_DIR := $(BUILD_DIR)/bats-$(BATS_VERSION)
 BATS = $(BATS_DIR)/bin/bats
 BATS_TEST ?= test
