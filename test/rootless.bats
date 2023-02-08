@@ -12,20 +12,20 @@ load test_helper.bash
 	$DOCKER run --rm --privileged -u podman:podman \
 		-v "$PODMAN_ROOT_DATA_DIR:/podman/.local/share/containers/storage" \
 		--pull=never "${PODMAN_IMAGE}" \
-		docker run --rm alpine:3.14 wget -O /dev/null http://example.org
+		docker run --rm alpine:3.17 wget -O /dev/null http://example.org
 }
 
 @test "$TEST_PREFIX podman - uid mapping (using fuse-overlayfs) {
 	$DOCKER run --rm --privileged -u podman:podman \
 		-v "$PODMAN_ROOT_DATA_DIR:/podman/.local/share/containers/storage" \
 		--pull=never "${PODMAN_IMAGE}" \
-		docker run --rm alpine:3.14 /bin/sh -c 'set -ex; touch /file; chown guest /file; [ $(stat -c %U /file) = guest ]'
+		docker run --rm alpine:3.17 /bin/sh -c 'set -ex; touch /file; chown guest /file; [ $(stat -c %U /file) = guest ]'
 }
 
 @test "$TEST_PREFIX podman - unmapped uid" {
 	$DOCKER run --rm --privileged --user 9000:9000 \
 		--pull=never "${PODMAN_IMAGE}" \
-		docker run --rm alpine:3.14 wget -O /dev/null http://example.org
+		docker run --rm alpine:3.17 wget -O /dev/null http://example.org
 }
 
 @test "$TEST_PREFIX podman - build image from dockerfile" {
@@ -34,7 +34,7 @@ load test_helper.bash
 		--pull=never "${PODMAN_IMAGE}" \
 		-c 'set -e;
 			podman build -t podmantestimage -f - . <<-EOF
-				FROM alpine:3.14
+				FROM alpine:3.17
 				RUN echo hello world > /hello
 				CMD ["/bin/cat", "/hello"]
 			EOF'
