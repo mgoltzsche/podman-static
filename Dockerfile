@@ -130,8 +130,9 @@ COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY conf/containers /etc/containers
 RUN set -ex; \
 	adduser -D podman -h /podman -u 1000; \
-	echo 'podman:100000:65536' > /etc/subuid; \
-	echo 'podman:100000:65536' > /etc/subgid; \
+	echo 'podman:1:999' > /etc/subuid; \
+	echo 'podman:1001:64535' >> /etc/subuid; \
+	cp /etc/subuid /etc/subgid; \
 	ln -s /usr/local/bin/podman /usr/bin/docker; \
 	mkdir -p /podman/.local/share/containers/storage /var/lib/containers/storage; \
 	chown -R podman:podman /podman; \
