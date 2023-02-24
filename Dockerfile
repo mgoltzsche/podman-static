@@ -29,7 +29,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v4.4.1
+ARG PODMAN_VERSION=v4.4.2
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -98,7 +98,7 @@ RUN set -ex; \
 # fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
 RUN apk add --update --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
-ARG LIBFUSE_VERSION=fuse-3.13.1
+ARG LIBFUSE_VERSION=fuse-3.14.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$LIBFUSE_VERSION https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -ex; \
