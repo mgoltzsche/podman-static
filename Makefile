@@ -85,6 +85,7 @@ test-minimal-image: $(BATS)
 	PODMAN_IMAGE=$(PODMAN_MINIMAL_IMAGE) \
 	TEST_PREFIX=minimal \
 	TEST_SKIP_PORTMAPPING=true \
+	TEST_SKIP_PLAYKUBE=true \
 	$(BATS) -T test/rootless.bats
 
 install:
