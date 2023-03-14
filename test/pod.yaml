@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+  - name: build
+    image: alpine:3.17
+    command: ["/bin/sh"]
+    args:
+    - -c
+    - |
+        echo sleeping ...
+        exec sleep infinity

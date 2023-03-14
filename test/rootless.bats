@@ -8,6 +8,14 @@ PODMAN_ROOT_DATA_DIR="$BATS_TEST_DIRNAME/../build/test-storage/user"
 
 load test_helper.bash
 
+teardown_file() {
+	$DOCKER run --rm --privileged -u podman:podman \
+		-v "$PODMAN_ROOT_DATA_DIR:/podman/.local/share/containers/storage" \
+		--mount="type=bind,src=`pwd`/test/pod.yaml,dst=/pod.yaml" \
+		--pull=never "${PODMAN_IMAGE}" \
+		podman pod rm -f mypod || true
+}
+
 @test "$TEST_PREFIX podman - internet connectivity" {
 	$DOCKER run --rm --privileged -u podman:podman \
 		-v "$PODMAN_ROOT_DATA_DIR:/podman/.local/share/containers/storage" \
@@ -45,4 +53,16 @@ load test_helper.bash
 		skip "TEST_SKIP_PORTMAPPING=true"
 	fi
 	testPortMapping -u podman:podman -v "$PODMAN_ROOT_DATA_DIR:/podman/.local/share/containers/storage" "${PODMAN_IMAGE}"
+}
+
+@test "$TEST_PREFIX podman - play kube" {
+	if [ "${TEST_SKIP_PLAYKUBE:-}" = true ]; then
+		# Otherwise minimal podman fails with "Error: unable to find network with name or ID podman-default-kube-network: network not found"
+		skip "TEST_SKIP_PLAYKUBE=true"
+	fi
+	$DOCKER run --rm --privileged -u podman:podman \
+		-v "$PODMAN_ROOT_DATA_DIR:/podman/.local/share/containers/storage" \
+		--mount="type=bind,src=`pwd`/test/pod.yaml,dst=/pod.yaml" \
+		--pull=never "${PODMAN_IMAGE}" \
+		podman play kube /pod.yaml
 }
