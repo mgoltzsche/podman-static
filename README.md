@@ -7,6 +7,7 @@ This project provides alpine-based podman container images and statically linked
 * [fuse-overlayfs](https://github.com/containers/fuse-overlayfs) and [libfuse](https://github.com/libfuse/libfuse)
 * [slirp4netns](https://github.com/rootless-containers/slirp4netns) (with [libslirp](https://gitlab.freedesktop.org/slirp/libslirp))
 * [CNI plugins](https://github.com/containernetworking/plugins): loopback, bridge, host-local, portmap, firewall, tuning
+* [catatonit](https://github.com/openSUSE/catatonit)
 
 ## Container image
 
@@ -14,7 +15,7 @@ The following image tags are supported:
 
 | Tag | Description |
 | --- | ----------- |
-| `latest`, `<VERSION>` | podman with both rootless and rootful dependencies: runc, conmon, fuse-overlayfs, slirp4netns, CNI plugins. |
+| `latest`, `<VERSION>` | podman with both rootless and rootful dependencies: runc, conmon, fuse-overlayfs, slirp4netns, CNI plugins, catatonit. |
 | `minimal`, `<VERSION>-minimal` | podman, crun, fuse-overlayfs and conmon binaries, configured to use the host's existing namespaces (low isolation level). |
 | `remote`, `<VERSION>-remote` | the podman remote binary. |
 

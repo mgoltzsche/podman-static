@@ -120,6 +120,20 @@ RUN set -ex; \
 	fuse-overlayfs --help >/dev/null
 
 
+# catatonit
+FROM podmanbuildbase AS catatonit
+RUN apk add --update --no-cache autoconf automake libtool
+ARG CATATONIT_VERSION=99bb9048f532257f3a2c3856cfa19fe957ab6cec # v0.1.7+buildfix
+RUN git clone https://github.com/openSUSE/catatonit.git /catatonit
+WORKDIR /catatonit
+RUN set -ex; \
+	git -c 'advice.detachedHead=false' checkout $CATATONIT_VERSION; \
+	./autogen.sh; \
+	./configure LDFLAGS="-static" --prefix=/ --bindir=/bin; \
+	make; \
+	./catatonit --version
+
+
 # Build podman base image
 FROM alpine:3.17 AS podmanbase
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
@@ -174,4 +188,5 @@ FROM rootlesspodmanrunc AS podmanall
 RUN apk add --no-cache iptables ip6tables
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=cniplugins /usr/local/lib/cni /usr/local/lib/cni
+COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
 COPY conf/cni /etc/cni
