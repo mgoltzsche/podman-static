@@ -93,6 +93,7 @@ install:
 
 tar: .podman-from-container
 	rm -f $(ASSET_DIR).tar.gz
+	mkdir -p $(ASSET_DIR)/usr/lib/systemd/system
 	cp -f conf/systemd/podman-restart.service $(ASSET_DIR)/usr/lib/systemd/system/podman-restart.service
 	tar -C $(ASSET_DIR)/.. -czvf $(ASSET_DIR).tar.gz $(ASSET_NAME)
 
