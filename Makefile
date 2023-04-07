@@ -93,6 +93,7 @@ install:
 
 tar: .podman-from-container
 	rm -f $(ASSET_DIR).tar.gz
+	cp -f conf/systemd/podman-restart.service $(ASSET_DIR)/usr/lib/systemd/system/podman-restart.service
 	tar -C $(ASSET_DIR)/.. -czvf $(ASSET_DIR).tar.gz $(ASSET_NAME)
 
 .podman-from-container: IMAGE_ROOTFS = $(BUILD_DIR)/images/podman/linux_$(ARCH)

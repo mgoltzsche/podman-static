@@ -86,6 +86,13 @@ sudo ln -s /usr/local/bin/podman /usr/local/bin/docker
 
 Before updating binaries on your host please terminate all corresponding processes.  
 
+### Restart containers on boot
+
+To restart containers with restart-policy=always on boot, enable the `podman-restart` systemd service:
+```sh
+systemctl enable podman-restart
+```
+
 ### Binary usage example
 
 ```sh
