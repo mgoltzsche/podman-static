@@ -39,10 +39,14 @@ jobs:
         GPG_SIGN_KEY_PASSPHRASE: ${{ secrets.GPG_SIGN_KEY_PASSPHRASE }}
 
     - name: Log into GitHub registry
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
 
     - name: Log into DockerHub registry
-      run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      run: echo "$DOCKERHUB_TOKEN" | docker login docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      env:
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Push images
       run: |
