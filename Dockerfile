@@ -4,6 +4,7 @@ RUN apk add --no-cache gnupg
 
 
 # runc
+# TODO: update to 1.1.8 when static build is fixed, see https://github.com/opencontainers/runc/issues/3950
 FROM golang:1.18-alpine3.17 AS runc
 ARG RUNC_VERSION=v1.1.7
 RUN set -eux; \
@@ -14,7 +15,7 @@ RUN set -eux; \
 	mv runc /usr/local/bin/runc; \
 	rm -rf $GOPATH/src/github.com/opencontainers/runc; \
 	apk del --purge .build-deps; \
-	[ "$(ldd /usr/local/bin/runc | wc -l)" -eq 0 ] || (ldd /usr/local/bin/runc; false)
+	! ldd /usr/local/bin/runc
 
 
 # podman build base
@@ -29,7 +30,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v4.5.1
+ARG PODMAN_VERSION=v4.6.0
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -39,12 +40,12 @@ RUN set -ex; \
 	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
 	mv bin/podman /usr/local/bin/podman; \
 	podman --help >/dev/null; \
-	[ "$(ldd /usr/local/bin/podman | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman; false)
+	! ldd /usr/local/bin/podman
 RUN set -ex; \
 	CGO_ENABLED=0 make bin/rootlessport BUILDFLAGS=" -mod=vendor -ldflags=\"-s -w -extldflags '-static'\""; \
 	mkdir -p /usr/local/lib/podman; \
 	mv bin/rootlessport /usr/local/lib/podman/rootlessport; \
-	[ "$(ldd /usr/local/lib/podman/rootlessport | wc -l)" -eq 0 ] || (ldd /usr/local/lib/podman/rootlessport; false)
+	! ldd /usr/local/lib/podman/rootlessport
 
 
 # conmon (without systemd support)
@@ -67,7 +68,7 @@ RUN set -ex; \
 	for PLUGINDIR in $CNI_PLUGINS; do \
 		PLUGINBIN=/usr/local/lib/cni/$(basename $PLUGINDIR); \
 		CGO_ENABLED=0 go build -o $PLUGINBIN -ldflags "-s -w -extldflags '-static'" ./plugins/$PLUGINDIR; \
-		[ "$(ldd $PLUGINBIN | grep -Ev '^\s+ldd \(0x[0-9a-f]+\)$' | wc -l)" -eq 0 ] || (ldd $PLUGINBIN; false); \
+		! ldd $PLUGINBIN; \
 	done
 
 
@@ -98,7 +99,7 @@ RUN set -ex; \
 # fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
 RUN apk add --update --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
-ARG LIBFUSE_VERSION=fuse-3.14.1
+ARG LIBFUSE_VERSION=fuse-3.15.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$LIBFUSE_VERSION https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -ex; \
@@ -135,7 +136,7 @@ RUN set -ex; \
 
 
 # Build podman base image
-FROM alpine:3.17 AS podmanbase
+FROM alpine:3.18 AS podmanbase
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
@@ -169,7 +170,7 @@ COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 # Download crun
 # (switched keyserver from sks to ubuntu since sks is offline now and gpg refuses to import keys from keys.openpgp.org because it does not provide a user ID with the key.)
 FROM gpg AS crun
-ARG CRUN_VERSION=1.8.5
+ARG CRUN_VERSION=1.8.6
 RUN set -ex; \
 	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd; \
 	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd.asc; \
