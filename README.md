@@ -1,4 +1,4 @@
-# podman binaries and container images ![GitHub workflow badge](https://github.com/mgoltzsche/podman-static/workflows/Release/badge.svg)
+# podman binaries and container images ![GitHub workflow badge](https://github.com/trentapple/podman-static/workflows/Release/badge.svg)
 
 This project provides alpine-based podman container images and statically linked (rootless) podman binaries for linux/amd64 and linux/arm64/v8 machines along with its dependencies _(without systemd support)_:
 * [podman](https://github.com/containers/podman)
