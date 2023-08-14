@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 : ${DOCKER:=docker}
-: ${PODMAN_IMAGE:=mgoltzsche/podman:latest}
+: ${PODMAN_IMAGE:=trentapple/podman:latest}
 : ${TEST_PREFIX:=rootless}
 
 PODMAN_ROOT_DATA_DIR="$BATS_TEST_DIRNAME/../build/test-storage/user"
