@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
 : ${DOCKER:=docker}
-: ${PODMAN_IMAGE:=mgoltzsche/podman:latest}
-: ${PODMAN_REMOTE_IMAGE:=mgoltzsche/podman:latest-remote}
+: ${PODMAN_IMAGE:=trentapple/podman:latest}
+: ${PODMAN_REMOTE_IMAGE:=trentapple/podman:latest-remote}
 
 PODMAN_ADDRESS=127.0.0.1:53453
 PODMAN_CONTAINER=podman-test-server
