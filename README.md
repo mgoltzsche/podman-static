@@ -9,7 +9,7 @@ This project provides alpine-based podman container images and statically linked
 * [CNI plugins](https://github.com/containernetworking/plugins): loopback, bridge, host-local, portmap, firewall, tuning
 * [catatonit](https://github.com/openSUSE/catatonit)
 
-(note that CNI may be replaced. See also: [Podman Networking Docs](https://docs.podman.io/en/latest/markdown/podman-network.1.html))
+CNI may be replaced. See also: [Podman Networking Docs](https://docs.podman.io/en/latest/markdown/podman-network.1.html)
 
 ## Container image
 
