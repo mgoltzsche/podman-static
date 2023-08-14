@@ -30,7 +30,7 @@ Please note that, when running non-remote podman within a docker container, the 
 
 Run podman in docker:
 ```sh
-docker run --privileged -u podman:podman mgoltzsche/podman:minimal docker run alpine:latest echo hello from nested container
+docker run --privileged -u podman:podman trentapple/podman:minimal docker run alpine:latest echo hello from nested container
 ```
 _Within the container `docker` is linked to `podman` to support applications that use the `docker` command._
 
@@ -40,12 +40,12 @@ _In case you're using an arm64 machine (e.g. a Raspberry Pi), you need to substi
 
 Download the statically linked binaries of podman and its dependencies:
 ```sh
-curl -fsSL -o podman-linux-amd64.tar.gz https://github.com/mgoltzsche/podman-static/releases/latest/download/podman-linux-amd64.tar.gz
+curl -fsSL -o podman-linux-amd64.tar.gz https://github.com/trentapple/podman-static/releases/latest/download/podman-linux-amd64.tar.gz
 ```
 
 Verify the archive's signature (optional):
 ```sh
-curl -fsSL -o podman-linux-amd64.tar.gz.asc https://github.com/mgoltzsche/podman-static/releases/latest/download/podman-linux-amd64.tar.gz.asc
+curl -fsSL -o podman-linux-amd64.tar.gz.asc https://github.com/trentapple/podman-static/releases/latest/download/podman-linux-amd64.tar.gz.asc
 gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 0CCF102C4F95D89E583FF1D4F8B5AF50344BB503
 gpg --batch --verify podman-linux-amd64.tar.gz.asc podman-linux-amd64.tar.gz
 ```
@@ -54,7 +54,7 @@ _This may fail every now and then due to desync/unavailable key servers. In that
 Download a specific version:
 ```sh
 VERSION=<VERSION>
-curl -fsSL -o podman-linux-amd64.tar.gz https://github.com/mgoltzsche/podman-static/releases/download/$VERSION/podman-linux-amd64.tar.gz
+curl -fsSL -o podman-linux-amd64.tar.gz https://github.com/trentapple/podman-static/releases/download/$VERSION/podman-linux-amd64.tar.gz
 ```
 
 Install the binaries and configuration on your host after you've inspected the archive:
