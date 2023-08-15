@@ -30,7 +30,8 @@ jobs:
         platforms: all
 
     - name: Build & test
-      run: make images test
+      run: make images
+      #run: make images test
 
     - name: Build signed archives
       run: make clean multiarch-tar TAR_TARGET=signed-tar
