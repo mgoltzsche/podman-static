@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    # Publish `master` as Docker `latest` image.
+    # Publish `main` as Docker `latest` image.
     branches:
     - main
 
@@ -10,7 +10,142 @@ on:
     tags:
     - v*
 
+env:
+  PODMAN_IMAGE: podman
+  PODMAN_MINIMAL_IMAGE: podman-minimal
+  PODMAN_REMOTE_IMAGE: podman-remote
+
 jobs:
-  push:
-  - name: Download a Build Artifact
-    uses: actions/download-artifact@v2.1.1
+  push:      
+    runs-on: ubuntu-latest
+#    if: github.event_name == 'push'
+      
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Set up qemu
+      uses: docker/setup-qemu-action@v1
+      with:
+        platforms: all
+
+    - name: Build & test
+      run: make images
+      #run: make images test
+
+    - name: Build signed archives
+      run: make clean multiarch-tar TAR_TARGET=signed-tar
+      env:
+        GPG_SIGN_KEY: ${{ secrets.GPG_SIGN_KEY }}
+        GPG_SIGN_KEY_PASSPHRASE: ${{ secrets.GPG_SIGN_KEY_PASSPHRASE }}
+
+    - name: Upload a Build Artifact archive amd64
+      uses: actions/upload-artifact@v2.1.1
+      with:
+        path: ./build/asset/podman-linux-amd64.tar.gz
+        name: podman-linux-amd64.tar.gz
+
+    - name: Upload a Build Artifact signature amd64
+      uses: actions/upload-artifact@v2.1.1
+      with:
+        path: ./build/asset/podman-linux-amd64.tar.gz.asc
+        name: podman-linux-amd64.tar.gz.asc
+
+    - name: Log into GitHub registry
+      run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Push images
+      run: |
+        set -eu
+
+        GITHUB_IMAGE_REPO=ghcr.io/trentapple/podman-static
+        GITHUB_IMAGE_REPO=$(echo $GITHUB_IMAGE_REPO | tr '[A-Z]' '[a-z]')
+
+        # Strip git ref prefix from version
+        TAGS=$(echo "$GITHUB_REF" | sed -e 's,.*/\(.*\),\1,')
+        # Strip "v" prefix from tag name
+        [[ "$GITHUB_REF" == "refs/tags/v"* ]] && TAGS=$(echo $TAGS | sed -e 's/^v//')
+        # Expand tags: 1.2.3 -> 1 1.2 1.2.3
+        TAGS="$(echo "$TAGS" | sed -E -e 's/^((([0-9]+)\.[0-9]+)\.[0-9]+)$/\3 \2 \1/')"
+
+        for IMAGE in $PODMAN_REMOTE_IMAGE $PODMAN_IMAGE $PODMAN_MINIMAL_IMAGE; do
+          TAG_SUFFIX=$(echo $IMAGE | sed -E -e 's/^([^-]+)//')
+          LATEST_TAG="$([ "$TAG_SUFFIX" ] && echo $TAG_SUFFIX | sed -E -e 's/^-//' || echo latest)"
+          [ "$TAGS" == "main" ] && IMAGE_TAGS="$LATEST_TAG" || IMAGE_TAGS="$LATEST_TAG $TAGS"
+          TAG_OPTS=
+          printf 'Pushing image tags: '
+          for TAG in $IMAGE_TAGS; do
+            [ "$TAG" = "$LATEST_TAG" ] || TAG="${TAG}${TAG_SUFFIX}"
+            TAG_OPTS="$TAG_OPTS -t $GITHUB_IMAGE_REPO:$TAG"
+            printf ' %s' "$TAG"
+          done
+          echo
+          echo "Pushing $IMAGE image $GITHUB_IMAGE_REPO"
+          make "$IMAGE" PODMAN_BUILD_OPTS="$TAG_OPTS" PODMAN_MINIMAL_BUILD_OPTS="$TAG_OPTS" PODMAN_REMOTE_BUILD_OPTS="$TAG_OPTS"
+        done
+      env:
+        BUILDX_OUTPUT: type=registry
+        PLATFORM: linux/arm64/v8,linux/amd64
+        GITHUB_REF: ${{ github.ref }}
+
+    - name: Create release
+      if: github.ref != 'refs/heads/main'
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: ${{ github.ref }}
+        draft: false
+        prerelease: true
+
+    - name: Upload arm64 archive signature
+      if: github.ref != 'refs/heads/main'
+      id: upload-arm64-archive-signature
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./build/asset/podman-linux-arm64.tar.gz.asc
+        asset_name: podman-linux-arm64.tar.gz.asc
+        asset_content_type: application/octet-stream
+
+    - name: Upload arm64 archive
+      if: github.ref != 'refs/heads/main'
+      id: upload-arm64-archive
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./build/asset/podman-linux-arm64.tar.gz
+        asset_name: podman-linux-arm64.tar.gz
+        asset_content_type: application/octet-stream
+
+    - name: Upload amd64 archive signature
+      if: github.ref != 'refs/heads/main'
+      id: upload-amd64-archive-signature
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./build/asset/podman-linux-amd64.tar.gz.asc
+        asset_name: podman-linux-amd64.tar.gz.asc
+        asset_content_type: application/octet-stream
+
+    - name: Upload amd64 archive
+      if: github.ref != 'refs/heads/main'
+      id: upload-amd64-archive
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./build/asset/podman-linux-amd64.tar.gz
+        asset_name: podman-linux-amd64.tar.gz
+        asset_content_type: application/octet-stream
