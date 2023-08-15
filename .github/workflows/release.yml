@@ -11,9 +11,9 @@ on:
     - v*
 
 env:
-  PODMAN_IMAGE: podman
+  #PODMAN_IMAGE: podman
   PODMAN_MINIMAL_IMAGE: podman-minimal
-  PODMAN_REMOTE_IMAGE: podman-remote
+  #PODMAN_REMOTE_IMAGE: podman-remote
 
 jobs:
   push:
