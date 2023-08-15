@@ -32,8 +32,8 @@ BUILDX_OPTS ?= --builder=$(BUILDX_BUILDER) --output=$(BUILDX_OUTPUT) --platform=
 ASSET_NAME := podman-linux-$(ARCH)
 ASSET_DIR := $(BUILD_DIR)/asset/$(ASSET_NAME)
 
-#images: podman podman-remote podman-minimal
-images: podman-minimal
+images: podman podman-remote podman-minimal
+#images: podman-minimal
 
 multiarch-tar multiarch-images: PLATFORM = linux/arm64/v8,linux/amd64
 multiarch-tar: BUILDX_OUTPUT = type=local,dest=$(IMAGE_EXPORT_DIR)
