@@ -10,32 +10,7 @@ on:
     tags:
     - v*
 
-env:
-  #PODMAN_IMAGE: podman
-  PODMAN_MINIMAL_IMAGE: podman-minimal
-  #PODMAN_REMOTE_IMAGE: podman-remote
-
 jobs:
   push:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-
-    steps:
-    - name: Check out code
-      uses: actions/checkout@v2
-
-    - name: Set up qemu
-      uses: docker/setup-qemu-action@v1
-      with:
-        platforms: all
-
-    - name: Build & test
-      run: make images
-      #run: make images test
-
-    - name: Build signed archives
-      run: make clean multiarch-tar TAR_TARGET=signed-tar
-      env:
-        GPG_SIGN_KEY: ${{ secrets.GPG_SIGN_KEY }}
-        GPG_SIGN_KEY_PASSPHRASE: ${{ secrets.GPG_SIGN_KEY_PASSPHRASE }}
-        
+  - name: Download a Build Artifact
+    uses: actions/download-artifact@v2.1.1
