@@ -127,7 +127,7 @@ verify-signature:
 		for _ in `seq 1 10`; do \
 			TMPDIR=$$(mktemp -d); \
 			export GNUPGHOME=$$TMPDIR; \
-			gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 0CCF102C4F95D89E583FF1D4F8B5AF50344BB503 && \
+			gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys C1EAB6D69BC45DCB758A46B9B874F7B61B16FBA6 && \
 			gpg --list-keys && \
 			gpg --batch --verify $(ASSET_DIR).tar.gz.asc $(ASSET_DIR).tar.gz && \
 			rm -rf $$TMPDIR && \
@@ -159,7 +159,7 @@ run-server: podman-ssh
 		sh -c 'set -x; \
 			ssh-keygen -b 2048 -t rsa -N "" -f /podman/.ssh/ssh_host_rsa_key; \
 			ssh-keygen -b 521 -t ecdsa -N "" -f /podman/.ssh/ssh_host_ecdsa_key; \
-			[ -f /build/storage/user/client_rsa ] || ssh-keygen -b 2048 -t rsa -N "" -f /build/storage/user/client_rsa; \
+			[ -f /build/storage/user/client_rsa ] || ssh-keygen -b 4096 -t rsa -N "" -f /build/storage/user/client_rsa; \
 			cat /build/storage/user/client_rsa.pub > /podman/.ssh/authorized_keys; \
 			/usr/sbin/sshd -eD -f ~/.ssh/sshd_config & \
 			mkdir /tmp/podman; \
