@@ -4,17 +4,14 @@ RUN apk add --no-cache gnupg
 
 
 # runc
-# TODO: update to 1.1.8 when static build is fixed, see https://github.com/opencontainers/runc/issues/3950
 FROM golang:1.18-alpine3.17 AS runc
-ARG RUNC_VERSION=v1.1.7
+ARG RUNC_VERSION=v1.1.9
+# Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
-	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev libseccomp-static make git bash; \
-	git clone -c 'advice.detachedHead=false' --depth=1 --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
-	cd src/github.com/opencontainers/runc; \
-	make static BUILDTAGS='seccomp selinux ambient'; \
-	mv runc /usr/local/bin/runc; \
-	rm -rf $GOPATH/src/github.com/opencontainers/runc; \
-	apk del --purge .build-deps; \
+	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
+	wget -O /usr/local/bin/runc https://github.com/opencontainers/runc/releases/download/$RUNC_VERSION/runc.$ARCH; \
+	chmod +x /usr/local/bin/runc; \
+	runc --version; \
 	! ldd /usr/local/bin/runc
 
 
@@ -30,7 +27,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v4.6.1
+ARG PODMAN_VERSION=v4.6.2
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -50,7 +47,7 @@ RUN set -ex; \
 
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
-ARG CONMON_VERSION=v2.1.7
+ARG CONMON_VERSION=v2.1.8
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -ex; \
@@ -87,7 +84,7 @@ RUN set -ex; \
 	ninja -C build install
 # Build slirp4netns
 WORKDIR /
-ARG SLIRP4NETNS_VERSION=v1.2.0
+ARG SLIRP4NETNS_VERSION=v1.2.2
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
 RUN set -ex; \
@@ -99,7 +96,7 @@ RUN set -ex; \
 # fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
 RUN apk add --update --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
-ARG LIBFUSE_VERSION=fuse-3.15.1
+ARG LIBFUSE_VERSION=fuse-3.16.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$LIBFUSE_VERSION https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -ex; \
@@ -110,7 +107,7 @@ RUN set -ex; \
 	touch /dev/fuse; \
 	ninja install; \
 	fusermount3 -V
-ARG FUSEOVERLAYFS_VERSION=v1.12
+ARG FUSEOVERLAYFS_VERSION=v1.13
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -ex; \
@@ -170,7 +167,7 @@ COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 # Download crun
 # (switched keyserver from sks to ubuntu since sks is offline now and gpg refuses to import keys from keys.openpgp.org because it does not provide a user ID with the key.)
 FROM gpg AS crun
-ARG CRUN_VERSION=1.8.6
+ARG CRUN_VERSION=1.9
 RUN set -ex; \
 	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd; \
 	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd.asc; \
