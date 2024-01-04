@@ -4,7 +4,7 @@ Port 2222
 PidFile /tmp/sshd.pid
 HostKey /podman/.ssh/ssh_host_rsa_key
 HostKey /podman/.ssh/ssh_host_ecdsa_key
-#HostKey /podman/.ssh/ssh_host_ed25519_key
+HostKey /podman/.ssh/ssh_host_ed25519_key
 AuthorizedKeysFile	.ssh/authorized_keys
 PasswordAuthentication no
 PubkeyAuthentication yes
