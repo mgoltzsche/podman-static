@@ -198,7 +198,7 @@ COPY conf/crun-containers.conf /etc/containers/containers.conf
 
 # Build podman image with rootless binaries and CNI plugins
 FROM rootlesspodmanrunc AS podmanall
-RUN apk add --no-cache iptables ip6tables
+RUN apk add --no-cache iptables ip6tables nftables
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=cniplugins /usr/local/lib/cni /usr/local/lib/cni
 COPY --from=netavark /netavark/netavark /usr/local/bin/netavark
