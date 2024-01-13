@@ -28,14 +28,10 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
 
-#ARG PODMAN_VERSION=$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)
-#RUN export PODMAN_VERSION=$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)
 #ARG PODMAN_VERSION=v5.0.0
-# v4_8_1 was last version manually specified
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
-#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4) https://github.com/containers/podman src/github.com/containers/podman
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION:-$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN set -ex; \
 	export CGO_ENABLED=$PODMAN_CGO; \
@@ -55,9 +51,7 @@ FROM podmanbuildbase AS conmon
 RUN apk add --update --no-cache tzdata curl
 
 #ARG CONMON_VERSION=v2.1.10
-#RUN export CONMON_VERSION=$(curl -s https://api.github.com/repos/containers/conmon/releases/latest | grep tag_name | cut -d '"' -f 4)
-#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $(curl -s https://api.github.com/repos/containers/conmon/releases/latest | grep tag_name | cut -d '"' -f 4) https://github.com/containers/conmon.git /conmon
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION:-$(curl -s https://api.github.com/repos/containers/conmon/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -ex; \
 	make git-vars bin/conmon PKG_CONFIG='pkg-config --static' CFLAGS='-std=c99 -Os -Wall -Wextra -Werror -static' LDFLAGS='-s -w -static'; \
@@ -82,8 +76,7 @@ RUN set -ex; \
 # netavark
 FROM podmanbuildbase AS netavark
 #ARG NETAVARK_VERSION=v1.9.0
-#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION} https://github.com/containers/netavark /netavark
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4) https://github.com/containers/netavark /netavark
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION:-$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/netavark /netavark
 WORKDIR /netavark
 RUN set -ex; \
 	make; \
@@ -107,7 +100,7 @@ RUN set -ex; \
 WORKDIR /
 #ARG SLIRP4NETNS_VERSION=v1.2.2
 #RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${SLIRP4NETNS_VERSION} https://github.com/rootless-containers/slirp4netns.git
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $(curl -s https://api.github.com/repos/rootless-containers/slirp4netns/releases/latest | grep tag_name | cut -d '"' -f 4) https://github.com/rootless-containers/slirp4netns.git
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${SLIRP4NETNS_VERSION:-$(curl -s https://api.github.com/repos/rootless-containers/slirp4netns/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
 RUN set -ex; \
 	./autogen.sh; \
