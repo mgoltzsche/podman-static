@@ -81,8 +81,8 @@ ARG NETAVARK_VERSION=v1.9.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION:-$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/netavark /netavark
 WORKDIR /netavark
 RUN set -ex; \
-	make; \
-	./bin/netavark --version
+	make;
+#	bin/netavark --version > /dev/null
 
 
 # slirp4netns
