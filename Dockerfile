@@ -27,7 +27,11 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v4.8.1
+
+#ARG PODMAN_VERSION=$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)
+#ARG PODMAN_VERSION=v5.0.0
+RUN export PODMAN_VERSION=$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)
+# v4_8_1 was last version manually specified
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -47,7 +51,8 @@ RUN set -ex; \
 
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
-ARG CONMON_VERSION=v2.1.8
+#ARG CONMON_VERSION=v2.1.10
+ARG CONMON_VERSION=$(curl -s https://api.github.com/repos/containers/conmon/releases/latest | grep tag_name | cut -d '"' -f 4)
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -ex; \
@@ -55,7 +60,8 @@ RUN set -ex; \
 	bin/conmon --help >/dev/null
 
 
-# CNI plugins
+# CNI network backend and Cgroups V1 are deprecated
+# CNI plugins (removed in podman 5.0 and replaced by netavark)
 FROM podmanbuildbase AS cniplugins
 ARG CNI_PLUGIN_VERSION=v1.4.0
 ARG CNI_PLUGINS="ipam/host-local main/loopback main/bridge meta/portmap meta/tuning meta/firewall"
@@ -67,6 +73,16 @@ RUN set -ex; \
 		CGO_ENABLED=0 go build -o $PLUGINBIN -ldflags "-s -w -extldflags '-static'" ./plugins/$PLUGINDIR; \
 		! ldd $PLUGINBIN; \
 	done
+
+
+# netavark
+FROM podmanbuildbase AS netavark
+ARG NETAVARK_VERSION=v1.9.0
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION} https://github.com/containers/netavark /netavark
+WORKDIR /netavark
+RUN set -ex; \
+	make; \
+	./netavark --version
 
 
 # slirp4netns
