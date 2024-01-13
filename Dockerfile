@@ -51,6 +51,8 @@ RUN set -ex; \
 
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
+RUN apk add --update --no-cache tzdata curl
+
 #ARG CONMON_VERSION=v2.1.10
 #RUN export CONMON_VERSION=$(curl -s https://api.github.com/repos/containers/conmon/releases/latest | grep tag_name | cut -d '"' -f 4)
 #RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
