@@ -125,7 +125,7 @@ RUN set -ex; \
 	ninja install; \
 	fusermount3 -V
 ARG FUSEOVERLAYFS_VERSION=v1.13
-RUN git clone -c advice.detachedHead=false --depth=1 --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -ex; \
 	sh autogen.sh; \
@@ -139,7 +139,7 @@ RUN set -ex; \
 FROM podmanbuildbase AS catatonit
 RUN apk add --update --no-cache autoconf automake libtool
 ARG CATATONIT_VERSION=v0.2.0
-RUN git clone --branch=$CATATONIT_VERSION https://github.com/openSUSE/catatonit.git /catatonit
+RUN git clone -c 'advice.detachedHead=false' --branch=$CATATONIT_VERSION https://github.com/openSUSE/catatonit.git /catatonit
 WORKDIR /catatonit
 RUN set -ex; \
 	./autogen.sh; \
