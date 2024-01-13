@@ -81,8 +81,9 @@ RUN set -ex; \
 
 # netavark
 FROM podmanbuildbase AS netavark
-ARG NETAVARK_VERSION=v1.9.0
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION} https://github.com/containers/netavark /netavark
+#ARG NETAVARK_VERSION=v1.9.0
+#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION} https://github.com/containers/netavark /netavark
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4) https://github.com/containers/netavark /netavark
 WORKDIR /netavark
 RUN set -ex; \
 	make; \
@@ -104,8 +105,9 @@ RUN set -ex; \
 	ninja -C build install
 # Build slirp4netns
 WORKDIR /
-ARG SLIRP4NETNS_VERSION=v1.2.2
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
+#ARG SLIRP4NETNS_VERSION=v1.2.2
+#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${SLIRP4NETNS_VERSION} https://github.com/rootless-containers/slirp4netns.git
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $(curl -s https://api.github.com/repos/rootless-containers/slirp4netns/releases/latest | grep tag_name | cut -d '"' -f 4) https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
 RUN set -ex; \
 	./autogen.sh; \
@@ -159,6 +161,7 @@ COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
 COPY --from=podman /usr/local/lib/podman/rootlessport /usr/local/lib/podman/rootlessport
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY conf/containers /etc/containers
+# Rootlesskit is not necessary for rootless podman
 RUN set -ex; \
 	adduser -D podman -h /podman -u 1000; \
 	echo 'podman:1:999' > /etc/subuid; \
@@ -205,5 +208,6 @@ FROM rootlesspodmanrunc AS podmanall
 RUN apk add --no-cache iptables ip6tables
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=cniplugins /usr/local/lib/cni /usr/local/lib/cni
+COPY --from=netavark /netavark/netavark /usr/local/bin/netavark
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
 COPY conf/cni /etc/cni
