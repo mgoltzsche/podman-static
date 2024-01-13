@@ -4,7 +4,7 @@ RUN apk add --no-cache gnupg
 
 
 # runc
-FROM golang:1.20-alpine3.19 AS runc
+FROM golang:1.21-alpine3.19 AS runc
 ARG RUNC_VERSION=v1.1.10
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
@@ -16,14 +16,14 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.20-alpine3.19 AS podmanbuildbase
+FROM golang:1.21-alpine3.19 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
 	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables \
 	bash go-md2man
 # Hotfix for musl build failure https://github.com/mattn/go-sqlite3/issues/1164
-RUN go get github.com/mattn/go-sqlite3
+#RUN go get github.com/mattn/go-sqlite3
 
 
 # podman (without systemd support)
@@ -35,9 +35,9 @@ ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper 
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION:-$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
-#ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 RUN set -ex; \
 	export CGO_ENABLED=$PODMAN_CGO; \
+	export CGO_CFLAGS="-D_LARGEFILE64_SOURCE"; \
 	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
 	mv bin/podman /usr/local/bin/podman; \
 	podman --help >/dev/null; \
