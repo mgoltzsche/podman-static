@@ -24,13 +24,11 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	bash go-md2man
 
 
-ARG PODMAN_VERSION=$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)
-
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
-#RUN apk add --update --no-cache tzdata curl
+RUN apk add --update --no-cache tzdata curl
 
-#ARG PODMAN_VERSION=v5.0.0
+ARG PODMAN_VERSION=v4.8.3
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION:-$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/podman src/github.com/containers/podman
@@ -204,7 +202,7 @@ COPY conf/crun-containers.conf /etc/containers/containers.conf
 
 # Build podman image with rootless binaries and CNI plugins
 FROM rootlesspodmanrunc AS podmanall
-RUN apk add --no-cache iptables ip6tables nftables
+RUN apk add --no-cache iptables ip6tables
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=cniplugins /usr/local/lib/cni /usr/local/lib/cni
 COPY --from=netavark /netavark/bin/netavark /usr/local/bin/netavark
