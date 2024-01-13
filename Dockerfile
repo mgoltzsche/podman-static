@@ -75,6 +75,7 @@ RUN set -ex; \
 
 # netavark
 FROM podmanbuildbase AS netavark
+RUN apk add --update --no-cache tzdata curl
 #ARG NETAVARK_VERSION=v1.9.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION:-$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/netavark /netavark
 WORKDIR /netavark
@@ -98,9 +99,9 @@ RUN set -ex; \
 	ninja -C build install
 # Build slirp4netns
 WORKDIR /
-#ARG SLIRP4NETNS_VERSION=v1.2.2
-#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${SLIRP4NETNS_VERSION} https://github.com/rootless-containers/slirp4netns.git
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${SLIRP4NETNS_VERSION:-$(curl -s https://api.github.com/repos/rootless-containers/slirp4netns/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/rootless-containers/slirp4netns.git
+ARG SLIRP4NETNS_VERSION=v1.2.2
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${SLIRP4NETNS_VERSION} https://github.com/rootless-containers/slirp4netns.git
+#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${SLIRP4NETNS_VERSION:-$(curl -s https://api.github.com/repos/rootless-containers/slirp4netns/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
 RUN set -ex; \
 	./autogen.sh; \
