@@ -78,12 +78,13 @@ RUN set -ex; \
 
 # netavark
 FROM podmanbuildbase AS netavark
-RUN apk add --update --no-cache tzdata curl rust cargo
+#RUN apk add --update --no-cache tzdata curl rust cargo
+RUN apk add --update --no-cache tzdata curl
+RUN apk add --update --no-cache rust cargo
 #ARG NETAVARK_VERSION=v1.9.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION:-$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/netavark /netavark
 WORKDIR /netavark
 RUN set -ex; \
-	LDFLAGS=-static; \
 	make; \
 	bin/netavark --version > /dev/null
 
