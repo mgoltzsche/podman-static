@@ -33,7 +33,7 @@ ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper 
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION:-$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
-ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
+#ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 RUN set -ex; \
 	export CGO_ENABLED=$PODMAN_CGO; \
 	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
@@ -51,7 +51,7 @@ RUN set -ex; \
 FROM podmanbuildbase AS conmon
 RUN apk add --update --no-cache tzdata curl
 
-#ARG CONMON_VERSION=v2.1.10
+ARG CONMON_VERSION=v2.1.10
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION:-$(curl -s https://api.github.com/repos/containers/conmon/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -ex; \
@@ -76,10 +76,8 @@ RUN set -ex; \
 
 # netavark
 FROM podmanbuildbase AS netavark
-RUN apk add --update --no-cache tzdata curl
-# Rust
-RUN apk add --update --no-cache rust cargo
-#ARG NETAVARK_VERSION=v1.9.0
+RUN apk add --update --no-cache tzdata curl rust cargo
+ARG NETAVARK_VERSION=v1.9.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION:-$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/netavark /netavark
 WORKDIR /netavark
 RUN set -ex; \
