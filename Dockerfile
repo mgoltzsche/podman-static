@@ -33,6 +33,7 @@ ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper 
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION:-$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
+ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 RUN set -ex; \
 	export CGO_ENABLED=$PODMAN_CGO; \
 	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
