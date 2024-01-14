@@ -30,13 +30,15 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
 
-#ARG PODMAN_VERSION=v4.8.3
+ARG PODMAN_VERSION=v4.8.3
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION:-$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/podman src/github.com/containers/podman
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
+#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION:-$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN set -ex; \
 	export CGO_ENABLED=$PODMAN_CGO; \
+	# Workaround for build failure https://github.com/mattn/go-sqlite3/issues/1164 (fixed in future go-sqlite3 release)
 	export CGO_CFLAGS="-D_LARGEFILE64_SOURCE"; \
 	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
 	mv bin/podman /usr/local/bin/podman; \
@@ -51,10 +53,11 @@ RUN set -ex; \
 
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
-RUN apk add --update --no-cache tzdata curl
+#RUN apk add --update --no-cache tzdata curl
 
-#ARG CONMON_VERSION=v2.1.10
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION:-$(curl -s https://api.github.com/repos/containers/conmon/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/conmon.git /conmon
+ARG CONMON_VERSION=v2.1.10
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
+#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION:-$(curl -s https://api.github.com/repos/containers/conmon/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -ex; \
 	make git-vars bin/conmon PKG_CONFIG='pkg-config --static' CFLAGS='-std=c99 -Os -Wall -Wextra -Werror -static' LDFLAGS='-s -w -static'; \
@@ -77,16 +80,15 @@ RUN set -ex; \
 
 
 # netavark
-#FROM podmanbuildbase AS netavark
-##RUN apk add --update --no-cache tzdata curl rust cargo
-#RUN apk add --update --no-cache tzdata curl
-#RUN apk add --update --no-cache rust cargo
-##ARG NETAVARK_VERSION=v1.9.0
+FROM podmanbuildbase AS netavark
+#RUN apk add --update --no-cache tzdata curl rust cargo
+RUN apk add --update --no-cache rust cargo
+ARG NETAVARK_VERSION=v1.9.0
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION} https://github.com/containers/netavark /netavark
 #RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION:-$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/netavark /netavark
-#WORKDIR /netavark
-#RUN set -ex; \
-#	make; \
-#	bin/netavark --version > /dev/null
+WORKDIR /netavark
+RUN set -ex; \
+	make
 
 
 # slirp4netns
@@ -207,6 +209,6 @@ FROM rootlesspodmanrunc AS podmanall
 RUN apk add --no-cache iptables ip6tables
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=cniplugins /usr/local/lib/cni /usr/local/lib/cni
-#COPY --from=netavark /netavark/bin/netavark /usr/local/bin/netavark
+COPY --from=netavark /netavark/bin/netavark /usr/local/bin/netavark
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
 COPY conf/cni /etc/cni
