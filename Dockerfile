@@ -210,6 +210,6 @@ FROM rootlesspodmanrunc AS podmanall
 RUN apk add --no-cache iptables ip6tables
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=cniplugins /usr/local/lib/cni /usr/local/lib/cni
-COPY --from=netavark /netavark/bin/netavark /usr/local/bin/netavark
+#COPY --from=netavark /netavark/bin/netavark /usr/local/bin/netavark
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
 COPY conf/cni /etc/cni
