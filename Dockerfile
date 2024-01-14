@@ -88,7 +88,7 @@ RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSI
 #RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION:-$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/netavark /netavark
 WORKDIR /netavark
 RUN set -ex; \
-	make build_netavark --release
+	make build_netavark
 #	make
 
 
