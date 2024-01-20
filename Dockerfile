@@ -5,7 +5,7 @@ RUN apk add --no-cache gnupg
 
 # runc
 FROM golang:1.20-alpine3.18 AS runc
-ARG RUNC_VERSION=v1.1.10
+ARG RUNC_VERSION=v1.1.11
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
 	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
@@ -27,7 +27,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v4.8.2
+ARG PODMAN_VERSION=v4.8.3
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -174,7 +174,7 @@ RUN set -ex; \
 	gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
 	gpg --batch --verify /tmp/crun.asc /usr/local/bin/crun; \
 	chmod +x /usr/local/bin/crun; \
-	crun --help >/dev/null
+	! ldd /usr/local/bin/crun
 
 # Build minimal rootless podman
 FROM rootlesspodmanbase AS rootlesspodmanminimal
