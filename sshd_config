@@ -9,7 +9,7 @@ AuthorizedKeysFile	.ssh/authorized_keys
 PasswordAuthentication no
 PubkeyAuthentication yes
 PermitRootLogin no
-LoginGraceTime 2m
+LoginGraceTime 1m
 MaxAuthTries 6
 MaxSessions 10
 
