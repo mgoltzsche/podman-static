@@ -157,8 +157,8 @@ run-server: podman-ssh
 		-w /build \
 		"${PODMAN_SSH_IMAGE}" \
 		sh -c 'set -x; \
-			ssh-keygen -b 2048 -t rsa -N "" -f /podman/.ssh/ssh_host_rsa_key; \
-			ssh-keygen -b 521 -t ecdsa -N "" -f /podman/.ssh/ssh_host_ecdsa_key; \
+			ssh-keygen -b 4096 -t rsa -N "" -f /podman/.ssh/ssh_host_rsa_key; \
+			ssh-keygen -t ed25519 -N "" -f /podman/.ssh/ssh_host_ecdsa_key; \
 			[ -f /build/storage/user/client_rsa ] || ssh-keygen -b 4096 -t rsa -N "" -f /build/storage/user/client_rsa; \
 			cat /build/storage/user/client_rsa.pub > /podman/.ssh/authorized_keys; \
 			/usr/sbin/sshd -eD -f ~/.ssh/sshd_config & \
