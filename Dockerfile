@@ -16,7 +16,7 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.21-alpine3.19 AS podmanbuildbase
+FROM golang:1.21-alpine AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -24,7 +24,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	bash go-md2man
 # Hotfix for musl build failure https://github.com/mattn/go-sqlite3/issues/1164
 # And https://github.com/mattn/go-sqlite3/issues/958
-RUN go install github.com/mattn/go-sqlite3@v1.14.22
+#RUN go get github.com/mattn/go-sqlite3@v1.14.22
 
 
 # podman (without systemd support)
