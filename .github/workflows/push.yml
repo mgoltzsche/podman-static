@@ -10,7 +10,7 @@ on:
 env:
   PODMAN_IMAGE: podman
   PODMAN_MINIMAL_IMAGE: podman-minimal
-  PODMAN_REMOTE_IMAGE: podman-remote
+  #PODMAN_REMOTE_IMAGE: podman-remote
 
 jobs:
   push:
@@ -63,7 +63,8 @@ jobs:
         # Expand tags: 1.2.3 -> 1 1.2 1.2.3
         TAGS="$(echo "$TAGS" | sed -E -e 's/^((([0-9]+)\.[0-9]+)\.[0-9]+)$/\3 \2 \1/')"
 
-        for IMAGE in $PODMAN_REMOTE_IMAGE $PODMAN_IMAGE $PODMAN_MINIMAL_IMAGE; do
+        #for IMAGE in $PODMAN_REMOTE_IMAGE $PODMAN_IMAGE $PODMAN_MINIMAL_IMAGE; do
+        for IMAGE in $PODMAN_IMAGE $PODMAN_MINIMAL_IMAGE; do
           TAG_SUFFIX=$(echo $IMAGE | sed -E -e 's/^([^-]+)//')
           LATEST_TAG="$([ "$TAG_SUFFIX" ] && echo $TAG_SUFFIX | sed -E -e 's/^-//' || echo latest)"
           [ "$TAGS" == "main" ] && IMAGE_TAGS="$LATEST_TAG" || IMAGE_TAGS="$LATEST_TAG $TAGS"
