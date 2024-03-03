@@ -4,7 +4,7 @@ RUN apk add --no-cache gnupg
 
 
 # runc
-FROM golang:1.21-alpine3.19 AS runc
+FROM golang:1.21-alpine AS runc
 ARG RUNC_VERSION=v1.1.12
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
@@ -40,7 +40,8 @@ WORKDIR $GOPATH/src/github.com/containers/podman
 RUN set -ex; \
 	export CGO_ENABLED=$PODMAN_CGO; \
 	# Workaround for build failure https://github.com/mattn/go-sqlite3/issues/1164 (fixed in future go-sqlite3 release)
-	export CGO_CFLAGS="-D_LARGEFILE64_SOURCE"; \
+	#export CGO_CFLAGS="-D_LARGEFILE64_SOURCE"; \
+        go get github.com/mattn/go-sqlite3@v1.14.22 ; \
 	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
 	mv bin/podman /usr/local/bin/podman; \
 	podman --help >/dev/null; \
