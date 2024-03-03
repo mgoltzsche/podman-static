@@ -1,5 +1,5 @@
 # podman build base
-FROM golang:1.21-alpine3.19 AS podmanbuildbase
+FROM golang:1.21-alpine AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -21,6 +21,6 @@ RUN set -eux; \
 	podman --help >/dev/null; \
 	[ "$(ldd /usr/local/bin/podman-remote | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman-remote; false)
 
-FROM alpine:3.19
+FROM alpine
 COPY --from=podman-remote /usr/local/bin /usr/local/bin
 RUN adduser -D podman-remote -h /podman -u 1000
