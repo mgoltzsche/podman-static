@@ -23,7 +23,8 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables \
 	bash go-md2man
 # Hotfix for musl build failure https://github.com/mattn/go-sqlite3/issues/1164
-#RUN go get github.com/mattn/go-sqlite3
+# And https://github.com/mattn/go-sqlite3/issues/958
+RUN go get github.com/mattn/go-sqlite3@v1.14.22
 
 
 # podman (without systemd support)
