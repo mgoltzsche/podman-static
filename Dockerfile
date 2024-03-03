@@ -1,5 +1,5 @@
 # Download gpg
-FROM alpine:3.19 AS gpg
+FROM alpine AS gpg
 RUN apk add --no-cache gnupg
 
 
@@ -41,7 +41,7 @@ RUN set -ex; \
 	export CGO_ENABLED=$PODMAN_CGO; \
 	# Workaround for build failure https://github.com/mattn/go-sqlite3/issues/1164 (fixed in future go-sqlite3 release)
 	#export CGO_CFLAGS="-D_LARGEFILE64_SOURCE"; \
-        go get github.com/mattn/go-sqlite3@v1.14.22 ; \
+        go get -mod=readonly github.com/mattn/go-sqlite3@v1.14.22 ; \
 	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
 	mv bin/podman /usr/local/bin/podman; \
 	podman --help >/dev/null; \
