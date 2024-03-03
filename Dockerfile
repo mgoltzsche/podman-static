@@ -40,14 +40,14 @@ WORKDIR $GOPATH/src/github.com/containers/podman
 RUN set -ex; \
 	export CGO_ENABLED=$PODMAN_CGO; \
 	# Workaround for build failure https://github.com/mattn/go-sqlite3/issues/1164 (fixed in future go-sqlite3 release)
-	#export CGO_CFLAGS="-D_LARGEFILE64_SOURCE"; \
-        go get -mod=readonly github.com/mattn/go-sqlite3@v1.14.22 ; \
-	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
+	export CGO_CFLAGS="-D_LARGEFILE64_SOURCE"; \
+	make bin/podman CGO_CFLAGS="-D_LARGEFILE64_SOURCE" LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
 	mv bin/podman /usr/local/bin/podman; \
 	podman --help >/dev/null; \
 	! ldd /usr/local/bin/podman
 RUN set -ex; \
-	CGO_ENABLED=0 make bin/rootlessport BUILDFLAGS=" -mod=vendor -ldflags=\"-s -w -extldflags '-static'\""; \
+        #go get github.com/mattn/go-sqlite3@v1.14.22 ; \
+	CGO_ENABLED=0 make bin/rootlessport BUILDFLAGS=" -mod=vendor -D_LARGEFILE64_SOURCE -ldflags=\"-s -w -extldflags '-static'\""; \
 	mkdir -p /usr/local/lib/podman; \
 	mv bin/rootlessport /usr/local/lib/podman/rootlessport; \
 	! ldd /usr/local/lib/podman/rootlessport
@@ -158,7 +158,7 @@ RUN set -ex; \
 
 
 # Build podman base image
-FROM alpine:3.19 AS podmanbase
+FROM alpine AS podmanbase
 LABEL maintainer=""
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
