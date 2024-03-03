@@ -47,7 +47,7 @@ RUN set -ex; \
 	! ldd /usr/local/bin/podman
 RUN set -ex; \
         #go get github.com/mattn/go-sqlite3@v1.14.22 ; \
-	CGO_ENABLED=0 make bin/rootlessport BUILDFLAGS=" -mod=vendor -cflags=\"-D_LARGEFILE64_SOURCE\" -ldflags=\"-s -w -extldflags '-static'\""; \
+	CGO_ENABLED=0 make bin/rootlessport BUILDFLAGS=" -mod=vendor -ldflags=\"-s -w -extldflags '-static'\""; \
 	mkdir -p /usr/local/lib/podman; \
 	mv bin/rootlessport /usr/local/lib/podman/rootlessport; \
 	! ldd /usr/local/lib/podman/rootlessport
