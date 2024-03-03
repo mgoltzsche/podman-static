@@ -4,7 +4,7 @@ RUN apk add --no-cache gnupg
 
 
 # runc
-FROM golang:1.21-alpine AS runc
+FROM golang:1.20-alpine AS runc
 ARG RUNC_VERSION=v1.1.12
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
@@ -16,7 +16,7 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.21-alpine AS podmanbuildbase
+FROM golang:1.20-alpine AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -47,7 +47,7 @@ RUN set -ex; \
 	! ldd /usr/local/bin/podman
 RUN set -ex; \
         #go get github.com/mattn/go-sqlite3@v1.14.22 ; \
-	CGO_ENABLED=0 make bin/rootlessport BUILDFLAGS=" -mod=vendor -D_LARGEFILE64_SOURCE -ldflags=\"-s -w -extldflags '-static'\""; \
+	CGO_ENABLED=0 make bin/rootlessport BUILDFLAGS=" -mod=vendor -cflags=\"-D_LARGEFILE64_SOURCE\" -ldflags=\"-s -w -extldflags '-static'\""; \
 	mkdir -p /usr/local/lib/podman; \
 	mv bin/rootlessport /usr/local/lib/podman/rootlessport; \
 	! ldd /usr/local/lib/podman/rootlessport
