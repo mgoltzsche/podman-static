@@ -6,7 +6,8 @@ This project provides alpine-based podman container images and statically linked
 * [conmon](https://github.com/containers/conmon)
 * [fuse-overlayfs](https://github.com/containers/fuse-overlayfs) and [libfuse](https://github.com/libfuse/libfuse)
 * [slirp4netns](https://github.com/rootless-containers/slirp4netns) (with [libslirp](https://gitlab.freedesktop.org/slirp/libslirp))
-* [CNI plugins](https://github.com/containernetworking/plugins): loopback, bridge, host-local, portmap, firewall, tuning
+* [Netavark](https://github.com/containers/netavark): container network stack and default in podman 5 or later
+~* [CNI plugins](https://github.com/containernetworking/plugins): loopback, bridge, host-local, portmap, firewall, tuning~
 * [catatonit](https://github.com/openSUSE/catatonit)
 
 CNI may be replaced. See also: [Podman Networking Docs](https://docs.podman.io/en/latest/markdown/podman-network.1.html)
@@ -17,7 +18,7 @@ The following image tags are supported:
 
 | Tag | Description |
 | --- | ----------- |
-| `latest`, `<VERSION>` | podman with both rootless and rootful dependencies: runc, conmon, fuse-overlayfs, slirp4netns, CNI plugins, catatonit. |
+| `latest`, `<VERSION>` | podman with both rootless and rootful dependencies: runc, conmon, fuse-overlayfs, slirp4netns, netavark, ~CNI plugins~, catatonit. |
 | `minimal`, `<VERSION>-minimal` | podman, crun, fuse-overlayfs and conmon binaries, configured to use the host's existing namespaces (low isolation level). |
 | `remote`, `<VERSION>-remote` | the podman remote binary. |
 
@@ -75,6 +76,8 @@ The following binaries should be installed on your host:
 * `nsenter`
 * `uidmap` (for rootless mode)
 
+[nftables](https://netfilter.org/projects/nftables/) (with or without optional iptables-nft wrapper) to be included in the future [WIP](https://github.com/containers/netavark/pull/883)
+
 In order to run rootless containers that use multiple uids/gids you may want to set up a uid/gid mapping for your user on your host:
 ```
 sudo sh -c "echo $(id -un):100000:200000 >> /etc/subuid"
@@ -82,7 +85,7 @@ sudo sh -c "echo $(id -gn):100000:200000 >> /etc/subgid"
 ```
 _Please make sure you don't add the mapping multiple times._  
 
-To support applications that use the `docker` command you may want to link it to `podman` as follows:
+For support applications that rely on the `docker` command one quick option is to link `podman` as follows:
 ```sh
 sudo ln -s /usr/local/bin/podman /usr/local/bin/docker
 ```
