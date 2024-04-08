@@ -69,29 +69,6 @@ RUN set -ex; \
 	done
 
 
-# slirp4netns
-FROM podmanbuildbase AS slirp4netns
-WORKDIR /
-RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm
-# Build libslirp
-ARG LIBSLIRP_VERSION=v4.7.0
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
-WORKDIR /libslirp
-RUN set -ex; \
-	rm -rf /usr/lib/libglib-2.0.so /usr/lib/libintl.so; \
-	ln -s /usr/bin/clang /go/bin/clang; \
-	LDFLAGS="-s -w -static" meson --prefix /usr -D default_library=static build; \
-	ninja -C build install
-# Build slirp4netns
-WORKDIR /
-ARG SLIRP4NETNS_VERSION=v1.2.3
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
-WORKDIR /slirp4netns
-RUN set -ex; \
-	./autogen.sh; \
-	LDFLAGS=-static ./configure --prefix=/usr; \
-	make
-
 # netavark
 FROM podmanbuildbase AS netavark
 WORKDIR /
@@ -205,7 +182,6 @@ COPY conf/crun-containers.conf /etc/containers/containers.conf
 # Build podman image with rootless binaries and CNI plugins
 FROM rootlesspodmanrunc AS podmanall
 RUN apk add --no-cache iptables ip6tables
-COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=passt /passt/pasta /usr/local/bin/pasta
 COPY --from=netavark /netavark/bin/netavark /usr/local/lib/podman/netavark
 COPY --from=cniplugins /usr/local/lib/cni /usr/local/lib/cni
