@@ -28,7 +28,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
 
-ARG PODMAN_VERSION=v5.0.0
+ARG PODMAN_VERSION=v5.0.2
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -51,7 +51,7 @@ RUN set -ex; \
 FROM podmanbuildbase AS conmon
 #RUN apk add --update --no-cache tzdata curl
 
-ARG CONMON_VERSION=v2.1.10
+ARG CONMON_VERSION=v2.1.11
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 #RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION:-$(curl -s https://api.github.com/repos/containers/conmon/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
@@ -104,7 +104,7 @@ RUN set -ex; \
 	ninja -C build install
 # Build slirp4netns
 WORKDIR /
-ARG SLIRP4NETNS_VERSION=v1.2.3
+ARG SLIRP4NETNS_VERSION=v1.3.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${SLIRP4NETNS_VERSION} https://github.com/rootless-containers/slirp4netns.git
 #RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${SLIRP4NETNS_VERSION:-$(curl -s https://api.github.com/repos/rootless-containers/slirp4netns/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/rootless-containers/slirp4netns.git
 WORKDIR /slirp4netns
