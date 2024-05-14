@@ -17,11 +17,7 @@ env:
 
 jobs:
   push:
-    #runs-on: ubuntu-latest
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    runs-on: [ubuntu-latest, macos-13]
 #    if: github.event_name == 'push'
       
     steps:
