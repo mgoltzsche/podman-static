@@ -17,7 +17,7 @@ env:
 
 jobs:
   push:
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest, macos-13]
 #    if: github.event_name == 'push'
       
     steps:
