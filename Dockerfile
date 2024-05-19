@@ -27,7 +27,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v4.9.4
+ARG PODMAN_VERSION=v5.0.0
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -91,6 +91,27 @@ RUN set -ex; \
 	./autogen.sh; \
 	LDFLAGS=-static ./configure --prefix=/usr; \
 	make
+
+# netavark
+FROM podmanbuildbase AS netavark
+WORKDIR /
+RUN apk add --update --no-cache cargo
+# Build passt
+ARG NETAVARK_VERSION=v1.10.3
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION} https://github.com/containers/netavark
+WORKDIR /netavark
+RUN LDFLAGS=-static make
+
+
+# passt
+FROM podmanbuildbase AS passt
+WORKDIR /
+RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
+# Build passt
+ARG PASST_VERSION=2024_04_05.954589b
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PASST_VERSION} git://passt.top/passt
+WORKDIR /passt
+RUN make static
 
 
 # fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
@@ -185,6 +206,8 @@ COPY conf/crun-containers.conf /etc/containers/containers.conf
 FROM rootlesspodmanrunc AS podmanall
 RUN apk add --no-cache iptables ip6tables
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
+COPY --from=passt /passt/pasta /usr/local/bin/pasta
+COPY --from=netavark /netavark/bin/netavark /usr/local/lib/podman/netavark
 COPY --from=cniplugins /usr/local/lib/cni /usr/local/lib/cni
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
 COPY conf/cni /etc/cni
