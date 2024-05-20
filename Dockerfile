@@ -1,10 +1,10 @@
 # Download gpg
-FROM alpine:3.18 AS gpg
+FROM alpine:3.19 AS gpg
 RUN apk add --no-cache gnupg
 
 
 # runc
-FROM golang:1.20-alpine3.18 AS runc
+FROM golang:1.22-alpine3.19 AS runc
 ARG RUNC_VERSION=v1.1.12
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
@@ -16,7 +16,7 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.20-alpine3.18 AS podmanbuildbase
+FROM golang:1.22-alpine3.19 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -27,7 +27,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v5.0.0
+ARG PODMAN_VERSION=v5.1.1
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -47,7 +47,7 @@ RUN set -ex; \
 
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
-ARG CONMON_VERSION=v2.1.10
+ARG CONMON_VERSION=v2.1.11
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -ex; \
@@ -55,63 +55,41 @@ RUN set -ex; \
 	bin/conmon --help >/dev/null
 
 
-# CNI plugins
-FROM podmanbuildbase AS cniplugins
-ARG CNI_PLUGIN_VERSION=v1.4.1
-ARG CNI_PLUGINS="ipam/host-local main/loopback main/bridge meta/portmap meta/tuning meta/firewall"
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
-WORKDIR /go/src/github.com/containernetworking/plugins
-RUN set -ex; \
-	for PLUGINDIR in $CNI_PLUGINS; do \
-		PLUGINBIN=/usr/local/lib/cni/$(basename $PLUGINDIR); \
-		CGO_ENABLED=0 go build -o $PLUGINBIN -ldflags "-s -w -extldflags '-static'" ./plugins/$PLUGINDIR; \
-		! ldd $PLUGINBIN; \
-	done
-
-
-# slirp4netns
-FROM podmanbuildbase AS slirp4netns
-WORKDIR /
-RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm
-# Build libslirp
-ARG LIBSLIRP_VERSION=v4.7.0
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
-WORKDIR /libslirp
-RUN set -ex; \
-	rm -rf /usr/lib/libglib-2.0.so /usr/lib/libintl.so; \
-	ln -s /usr/bin/clang /go/bin/clang; \
-	LDFLAGS="-s -w -static" meson --prefix /usr -D default_library=static build; \
-	ninja -C build install
-# Build slirp4netns
-WORKDIR /
-ARG SLIRP4NETNS_VERSION=v1.2.3
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
-WORKDIR /slirp4netns
-RUN set -ex; \
-	./autogen.sh; \
-	LDFLAGS=-static ./configure --prefix=/usr; \
-	make
+FROM rust:1.78-alpine3.19 AS rustbase
+RUN apk add --update --no-cache git make musl-dev
 
 # netavark
-FROM podmanbuildbase AS netavark
-WORKDIR /
-RUN apk add --update --no-cache cargo
-# Build passt
+FROM rustbase AS netavark
+RUN apk add --update --no-cache protoc
 ARG NETAVARK_VERSION=v1.10.3
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION} https://github.com/containers/netavark
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$NETAVARK_VERSION https://github.com/containers/netavark
 WORKDIR /netavark
-RUN LDFLAGS=-static make
+ENV RUSTFLAGS='-C link-arg=-s'
+RUN cargo build --release
+
+
+# aardvark-dns
+FROM rustbase AS aardvark-dns
+ARG AARDVARKDNS_VERSION=v1.10.0
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$AARDVARKDNS_VERSION https://github.com/containers/aardvark-dns
+WORKDIR /aardvark-dns
+ENV RUSTFLAGS='-C link-arg=-s'
+RUN cargo build --release
 
 
 # passt
 FROM podmanbuildbase AS passt
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-# Build passt
-ARG PASST_VERSION=2024_04_05.954589b
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PASST_VERSION} git://passt.top/passt
+ARG PASST_VERSION=2024_05_23.765eb0b
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION git://passt.top/passt
 WORKDIR /passt
-RUN make static
+RUN set -ex; \
+	make static; \
+	mkdir bin; \
+	cp pasta bin/; \
+	[ ! -f pasta.avx2 ] || cp pasta.avx2 bin/; \
+	! ldd /passt/bin/pasta
 
 
 # fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
@@ -129,7 +107,7 @@ RUN set -ex; \
 	ninja install; \
 	fusermount3 -V
 ARG FUSEOVERLAYFS_VERSION=v1.13
-RUN git clone -c advice.detachedHead=false --depth=1 --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -ex; \
 	sh autogen.sh; \
@@ -143,7 +121,7 @@ RUN set -ex; \
 FROM podmanbuildbase AS catatonit
 RUN apk add --update --no-cache autoconf automake libtool
 ARG CATATONIT_VERSION=v0.2.0
-RUN git clone --branch=$CATATONIT_VERSION https://github.com/openSUSE/catatonit.git /catatonit
+RUN git clone -c 'advice.detachedHead=false' --branch=$CATATONIT_VERSION https://github.com/openSUSE/catatonit.git /catatonit
 WORKDIR /catatonit
 RUN set -ex; \
 	./autogen.sh; \
@@ -152,13 +130,29 @@ RUN set -ex; \
 	./catatonit --version
 
 
+# Download crun
+# (switched keyserver from sks to ubuntu since sks is offline now and gpg refuses to import keys from keys.openpgp.org because it does not provide a user ID with the key.)
+FROM gpg AS crun
+ARG CRUN_VERSION=1.15
+RUN set -ex; \
+	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
+	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
+	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd.asc; \
+	gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
+	gpg --batch --verify /tmp/crun.asc /usr/local/bin/crun; \
+	chmod +x /usr/local/bin/crun; \
+	! ldd /usr/local/bin/crun
+
+
 # Build podman base image
-FROM alpine:3.18 AS podmanbase
+FROM alpine:3.19 AS podmanbase
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
 COPY --from=podman /usr/local/lib/podman/rootlessport /usr/local/lib/podman/rootlessport
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
+COPY --from=passt /passt/bin/ /usr/local/bin/
+COPY --from=netavark /netavark/target/release/netavark /usr/local/lib/podman/netavark
 COPY conf/containers /etc/containers
 RUN set -ex; \
 	adduser -D podman -h /podman -u 1000; \
@@ -179,35 +173,15 @@ ENV BUILDAH_ISOLATION=chroot container=oci
 RUN apk add --no-cache shadow-uidmap
 COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
 COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
-
-# Build rootless podman base image with runc
-FROM rootlesspodmanbase AS rootlesspodmanrunc
-COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
-
-# Download crun
-# (switched keyserver from sks to ubuntu since sks is offline now and gpg refuses to import keys from keys.openpgp.org because it does not provide a user ID with the key.)
-FROM gpg AS crun
-ARG CRUN_VERSION=1.14.4
-RUN set -ex; \
-	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
-	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
-	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd.asc; \
-	gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
-	gpg --batch --verify /tmp/crun.asc /usr/local/bin/crun; \
-	chmod +x /usr/local/bin/crun; \
-	! ldd /usr/local/bin/crun
+COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
 
 # Build minimal rootless podman
 FROM rootlesspodmanbase AS rootlesspodmanminimal
-COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
 COPY conf/crun-containers.conf /etc/containers/containers.conf
 
-# Build podman image with rootless binaries and CNI plugins
-FROM rootlesspodmanrunc AS podmanall
+# Build podman image with all binaries
+FROM rootlesspodmanbase AS podmanall
 RUN apk add --no-cache iptables ip6tables
-COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
-COPY --from=passt /passt/pasta /usr/local/bin/pasta
-COPY --from=netavark /netavark/bin/netavark /usr/local/lib/podman/netavark
-COPY --from=cniplugins /usr/local/lib/cni /usr/local/lib/cni
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
-COPY conf/cni /etc/cni
+COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
+COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/lib/podman/aardvark-dns

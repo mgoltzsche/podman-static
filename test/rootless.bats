@@ -16,7 +16,7 @@ teardown_file() {
 		podman pod rm -f mypod || true
 }
 
-@test "$TEST_PREFIX podman - internet connectivity" {
+@test "$TEST_PREFIX podman - internet connectivity (using netavark + pasta)" {
 	$DOCKER run --rm --privileged -u podman:podman \
 		-v "$PODMAN_ROOT_DATA_DIR:/podman/.local/share/containers/storage" \
 		--pull=never "${PODMAN_IMAGE}" \
@@ -31,7 +31,7 @@ teardown_file() {
 }
 
 @test "$TEST_PREFIX podman - unmapped uid" {
-	$DOCKER run --rm --privileged --user 9000:9000 \
+	$DOCKER run --rm --privileged --user 9000:9000 -e HOME=/tmp \
 		--pull=never "${PODMAN_IMAGE}" \
 		docker run --rm alpine:3.17 wget -O /dev/null http://example.org
 }

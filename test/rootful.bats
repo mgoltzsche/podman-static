@@ -13,7 +13,7 @@ skipIfDockerUnavailableAndNotRunAsRoot() {
 	fi
 }
 
-@test "rootful podman - internet connectivity (CNI networking)" {
+@test "rootful podman - internet connectivity (using netavark + pasta)" {
 	skipIfDockerUnavailableAndNotRunAsRoot
 	$DOCKER run --rm --privileged --entrypoint /bin/sh -u root:root \
 		-v "$PODMAN_ROOT_DATA_DIR:/var/lib/containers/storage" \
