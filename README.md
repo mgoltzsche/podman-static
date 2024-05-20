@@ -2,12 +2,16 @@
 
 This project provides alpine-based podman container images and statically linked (rootless) podman binaries for linux/amd64 and linux/arm64/v8 machines along with its dependencies _(without systemd support)_:
 * [podman](https://github.com/containers/podman)
-* [runc](https://github.com/opencontainers/runc/) or [crun](https://github.com/containers/crun)
+* [crun](https://github.com/containers/crun)
+* [runc](https://github.com/opencontainers/runc/)
 * [conmon](https://github.com/containers/conmon)
 * [fuse-overlayfs](https://github.com/containers/fuse-overlayfs) and [libfuse](https://github.com/libfuse/libfuse)
-* [slirp4netns](https://github.com/rootless-containers/slirp4netns) (with [libslirp](https://gitlab.freedesktop.org/slirp/libslirp))
-* [CNI plugins](https://github.com/containernetworking/plugins): loopback, bridge, host-local, portmap, firewall, tuning
+* [Netavark](https://github.com/containers/netavark): container network stack and default in podman 5 or later
+  * [passt/pasta](https://passt.top/passt/)
+  * [aardvark-dns](https://github.com/containers/aardvark-dns)
 * [catatonit](https://github.com/openSUSE/catatonit)
+
+CNI networking has been replaced with Netavark since Podman version 5.
 
 ## Container image
 
@@ -15,8 +19,8 @@ The following image tags are supported:
 
 | Tag | Description |
 | --- | ----------- |
-| `latest`, `<VERSION>` | podman with both rootless and rootful dependencies: runc, conmon, fuse-overlayfs, slirp4netns, CNI plugins, catatonit. |
-| `minimal`, `<VERSION>-minimal` | podman, crun, fuse-overlayfs and conmon binaries, configured to use the host's existing namespaces (low isolation level). |
+| `latest`, `<VERSION>` | podman with all dependencies: runc, crun, conmon, fuse-overlayfs, netavark, pasta, aardvark-dns, catatonit. |
+| `minimal`, `<VERSION>-minimal` | podman, crun, conmon, fuse-overlayfs and netavark binaries, configured to use the host's existing namespaces (low isolation level). |
 | `remote`, `<VERSION>-remote` | the podman remote binary. |
 
 By default containers are run as user `root`.
@@ -73,6 +77,8 @@ The following binaries should be installed on your host:
 * `nsenter`
 * `uidmap` (for rootless mode)
 
+[nftables](https://netfilter.org/projects/nftables/) (with or without optional iptables-nft wrapper) to be included in the future [WIP](https://github.com/containers/netavark/pull/883).  
+
 In order to run rootless containers that use multiple uids/gids you may want to set up a uid/gid mapping for your user on your host:
 ```
 sudo sh -c "echo $(id -un):100000:200000 >> /etc/subuid"
@@ -80,7 +86,7 @@ sudo sh -c "echo $(id -gn):100000:200000 >> /etc/subgid"
 ```
 _Please make sure you don't add the mapping multiple times._  
 
-To support applications that use the `docker` command you may want to link it to `podman` as follows:
+To support applications that rely on the `docker` command, a quick option is to link `podman` as follows:
 ```sh
 sudo ln -s /usr/local/bin/podman /usr/local/bin/docker
 ```
