@@ -8,6 +8,12 @@ PODMAN_ROOT_DATA_DIR="$BATS_TEST_DIRNAME/../build/test-storage/user"
 
 load test_helper.bash
 
+setup_file() {
+        # Workaround for rootless non systemd github.com/containers/common/pull/2042/commits/67fdd8bd3aa912efa9d8a6375c6b5d192d4f8f9a
+        #mkdir -pm1777 "$PODMAN_ROOT_DATA_DIR/../../../rootless-netns/run"
+        mkdir -pm700 "/tmp/storage-run-1000/containers/networks/rootless-netns/run"
+}
+
 teardown_file() {
 	$DOCKER run --rm --privileged -u podman:podman \
 		-v "$PODMAN_ROOT_DATA_DIR:/podman/.local/share/containers/storage" \
