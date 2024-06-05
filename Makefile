@@ -102,7 +102,6 @@ tar: .podman-from-container
 	rm -rf $(ASSET_DIR)
 	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local
 	cp -r conf/containers $(ASSET_DIR)/etc/containers
-	cp -r conf/cni $(ASSET_DIR)/etc/cni
 	cp README.md $(ASSET_DIR)/
 	$(DOCKER) run --rm $(PODMAN_IMAGE) tar c /usr/local/{bin,lib} | tar -xC $(ASSET_DIR)
 
