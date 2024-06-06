@@ -9,7 +9,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman remote
 FROM podmanbuildbase AS podman-remote
 RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v4.9.4
+ARG PODMAN_VERSION=v4.9.5
 RUN git clone -c advice.detachedHead=false --depth=1 --branch=${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN set -eux; \
