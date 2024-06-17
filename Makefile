@@ -103,7 +103,8 @@ tar: .podman-from-container
 	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local
 	cp -r conf/containers $(ASSET_DIR)/etc/containers
 	cp README.md $(ASSET_DIR)/
-	$(DOCKER) run --rm $(PODMAN_IMAGE) tar c /usr/local/{bin,lib} | tar -xC $(ASSET_DIR)
+	cp -r $(IMAGE_ROOTFS)/usr/local/lib $(ASSET_DIR)/usr/local/lib
+	cp -r $(IMAGE_ROOTFS)/usr/local/bin $(ASSET_DIR)/usr/local/bin
 
 signed-tar: tar .gpg
 	@echo Running gpg signing container with GPG_SIGN_KEY and GPG_SIGN_KEY_PASSPHRASE
