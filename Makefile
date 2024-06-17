@@ -101,10 +101,10 @@ tar: .podman-from-container
 .podman-from-container: podman
 	rm -rf $(ASSET_DIR)
 	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local
-	cp -r conf/containers $(ASSET_DIR)/etc/containers
-	cp README.md $(ASSET_DIR)/
+	cp -r $(IMAGE_ROOTFS)/etc/containers $(ASSET_DIR)/etc/containers
 	cp -r $(IMAGE_ROOTFS)/usr/local/lib $(ASSET_DIR)/usr/local/lib
 	cp -r $(IMAGE_ROOTFS)/usr/local/bin $(ASSET_DIR)/usr/local/bin
+	cp README.md $(ASSET_DIR)/
 
 signed-tar: tar .gpg
 	@echo Running gpg signing container with GPG_SIGN_KEY and GPG_SIGN_KEY_PASSPHRASE
