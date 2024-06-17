@@ -20,6 +20,11 @@ jobs:
       with:
         platforms: all
 
+    - name: Print environment
+      run: |
+        uname -a
+        docker --version
+
     - name: Build & test linux/amd64 image
       run: make images test
 

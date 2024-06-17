@@ -16,7 +16,7 @@ teardown_file() {
 		podman pod rm -f mypod || true
 }
 
-@test "$TEST_PREFIX podman - internet connectivity" {
+@test "$TEST_PREFIX podman - internet connectivity (using netavark + pasta)" {
 	$DOCKER run --rm --privileged -u podman:podman \
 		-v "$PODMAN_ROOT_DATA_DIR:/podman/.local/share/containers/storage" \
 		--pull=never "${PODMAN_IMAGE}" \
@@ -31,7 +31,7 @@ teardown_file() {
 }
 
 @test "$TEST_PREFIX podman - unmapped uid" {
-	$DOCKER run --rm --privileged --user 9000:9000 \
+	$DOCKER run --rm --privileged --user 9000:9000 -e HOME=/tmp \
 		--pull=never "${PODMAN_IMAGE}" \
 		docker run --rm alpine:3.17 wget -O /dev/null http://example.org
 }
@@ -48,11 +48,11 @@ teardown_file() {
 			EOF'
 }
 
-@test "$TEST_PREFIX podman - port mapping" {
+@test "$TEST_PREFIX podman - port forwarding" {
 	if [ "${TEST_SKIP_PORTMAPPING:-}" = true ]; then
 		skip "TEST_SKIP_PORTMAPPING=true"
 	fi
-	testPortMapping -u podman:podman -v "$PODMAN_ROOT_DATA_DIR:/podman/.local/share/containers/storage" "${PODMAN_IMAGE}"
+	testPortForwarding -u podman:podman -v "$PODMAN_ROOT_DATA_DIR:/podman/.local/share/containers/storage" "${PODMAN_IMAGE}"
 }
 
 @test "$TEST_PREFIX podman - play kube" {
@@ -60,9 +60,17 @@ teardown_file() {
 		# Otherwise minimal podman fails with "Error: unable to find network with name or ID podman-default-kube-network: network not found"
 		skip "TEST_SKIP_PLAYKUBE=true"
 	fi
+	# TODO: remove workaround.
+	# The rootless-netns directory is created explicitly here as a workaround to make the test pass.
+	# See https://github.com/containers/podman/discussions/22903#discussioncomment-9675638
+	# and https://github.com/containers/common/pull/2042
 	$DOCKER run --rm --privileged -u podman:podman \
 		-v "$PODMAN_ROOT_DATA_DIR:/podman/.local/share/containers/storage" \
 		--mount="type=bind,src=`pwd`/test/pod.yaml,dst=/pod.yaml" \
 		--pull=never "${PODMAN_IMAGE}" \
-		podman play kube /pod.yaml
+		sh -c '
+			set -ex;
+			mkdir -pm700 /tmp/storage-run-1000/containers/networks/rootless-netns/run;
+			podman play kube /pod.yaml
+		'
 }

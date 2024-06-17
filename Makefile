@@ -12,7 +12,7 @@ GPG_IMAGE = gpg-signer
 
 BUILD_DIR = ./build
 
-BATS_VERSION = v1.8.2
+BATS_VERSION = v1.11.0
 BATS_DIR := $(BUILD_DIR)/bats-$(BATS_VERSION)
 BATS = $(BATS_DIR)/bin/bats
 BATS_TEST ?= test
@@ -102,10 +102,8 @@ tar: .podman-from-container
 	rm -rf $(ASSET_DIR)
 	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local
 	cp -r conf/containers $(ASSET_DIR)/etc/containers
-	cp -r conf/cni $(ASSET_DIR)/etc/cni
 	cp README.md $(ASSET_DIR)/
-	cp -r $(IMAGE_ROOTFS)/usr/local/lib $(ASSET_DIR)/usr/local/lib
-	cp -r $(IMAGE_ROOTFS)/usr/local/bin $(ASSET_DIR)/usr/local/bin
+	$(DOCKER) run --rm $(PODMAN_IMAGE) tar c /usr/local/{bin,lib} | tar -xC $(ASSET_DIR)
 
 signed-tar: tar .gpg
 	@echo Running gpg signing container with GPG_SIGN_KEY and GPG_SIGN_KEY_PASSPHRASE
@@ -146,7 +144,7 @@ run:
 		$(PODMAN_IMAGE) /bin/sh
 
 clean:
-	$(DOCKER) run --rm -v "`pwd`:/work" alpine:3.18 rm -rf /work/build
+	$(DOCKER) run --rm -v "`pwd`:/work" alpine:3.19 rm -rf /work/build
 
 run-server: podman-ssh
 	# TODO: make sshd log to stdout (while still ensuring that we know when it is available)

@@ -27,7 +27,7 @@ teardown_file() {
 		podman --url=tcp://$PODMAN_ADDRESS run alpine:3.17 echo hello from remote container
 }
 
-@test "remote podman - build image from dockerfile" {
+@test "remote podman - build dockerfile" {
 	# ATTENTION: podman remote fails if it cannot map the uids/gids from the server locally as well (which is why podman-remote user has been added)
 	$DOCKER run --rm --network=host --user=podman-remote:podman-remote --pull=never \
 		"${PODMAN_REMOTE_IMAGE}" \

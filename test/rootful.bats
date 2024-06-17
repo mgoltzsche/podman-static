@@ -13,7 +13,7 @@ skipIfDockerUnavailableAndNotRunAsRoot() {
 	fi
 }
 
-@test "rootful podman - internet connectivity (CNI networking)" {
+@test "rootful podman - internet connectivity (using netavark + pasta)" {
 	skipIfDockerUnavailableAndNotRunAsRoot
 	$DOCKER run --rm --privileged --entrypoint /bin/sh -u root:root \
 		-v "$PODMAN_ROOT_DATA_DIR:/var/lib/containers/storage" \
@@ -21,7 +21,7 @@ skipIfDockerUnavailableAndNotRunAsRoot() {
 		-c 'podman run --rm alpine:3.17 wget -O /dev/null http://example.org'
 }
 
-@test "rootful podman - build image from dockerfile" {
+@test "rootful podman - build dockerfile" {
 	skipIfDockerUnavailableAndNotRunAsRoot
 	$DOCKER run --rm --privileged --entrypoint /bin/sh -u root:root \
 		-v "$PODMAN_ROOT_DATA_DIR:/var/lib/containers/storage" \
@@ -34,7 +34,7 @@ skipIfDockerUnavailableAndNotRunAsRoot() {
 			EOF'
 }
 
-@test "rootful podman - port mapping" {
+@test "rootful podman - port forwarding" {
 	skipIfDockerUnavailableAndNotRunAsRoot
-	testPortMapping -u root:root -v "$PODMAN_ROOT_DATA_DIR:/var/lib/containers/storage" "${PODMAN_IMAGE}"
+	testPortForwarding -u root:root -v "$PODMAN_ROOT_DATA_DIR:/var/lib/containers/storage" "${PODMAN_IMAGE}"
 }
