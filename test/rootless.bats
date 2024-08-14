@@ -60,17 +60,9 @@ teardown_file() {
 		# Otherwise minimal podman fails with "Error: unable to find network with name or ID podman-default-kube-network: network not found"
 		skip "TEST_SKIP_PLAYKUBE=true"
 	fi
-	# TODO: remove workaround.
-	# The rootless-netns directory is created explicitly here as a workaround to make the test pass.
-	# See https://github.com/containers/podman/discussions/22903#discussioncomment-9675638
-	# and https://github.com/containers/common/pull/2042
 	$DOCKER run --rm --privileged -u podman:podman \
 		-v "$PODMAN_ROOT_DATA_DIR:/podman/.local/share/containers/storage" \
 		--mount="type=bind,src=`pwd`/test/pod.yaml,dst=/pod.yaml" \
 		--pull=never "${PODMAN_IMAGE}" \
-		sh -c '
-			set -ex;
-			mkdir -pm700 /tmp/storage-run-1000/containers/networks/rootless-netns/run;
-			podman play kube /pod.yaml
-		'
+		podman play kube /pod.yaml
 }

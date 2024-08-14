@@ -1,10 +1,10 @@
 # Download gpg
-FROM alpine:3.19 AS gpg
+FROM alpine:3.20 AS gpg
 RUN apk add --no-cache gnupg
 
 
 # runc
-FROM golang:1.22-alpine3.19 AS runc
+FROM golang:1.22-alpine3.20 AS runc
 ARG RUNC_VERSION=v1.1.13
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
@@ -16,7 +16,7 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.22-alpine3.19 AS podmanbuildbase
+FROM golang:1.22-alpine3.20 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -27,7 +27,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v5.1.2
+ARG PODMAN_VERSION=v5.2.1
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -59,14 +59,14 @@ RUN set -ex; \
 	bin/conmon --help >/dev/null
 
 
-FROM rust:1.78-alpine3.19 AS rustbase
+FROM rust:1.78-alpine3.20 AS rustbase
 RUN apk add --update --no-cache git make musl-dev
 
 
 # netavark
 FROM rustbase AS netavark
 RUN apk add --update --no-cache protoc
-ARG NETAVARK_VERSION=v1.11.0
+ARG NETAVARK_VERSION=v1.12.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$NETAVARK_VERSION https://github.com/containers/netavark
 WORKDIR /netavark
 ENV RUSTFLAGS='-C link-arg=-s'
@@ -75,7 +75,7 @@ RUN cargo build --release
 
 # aardvark-dns
 FROM rustbase AS aardvark-dns
-ARG AARDVARKDNS_VERSION=v1.11.0
+ARG AARDVARKDNS_VERSION=v1.12.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$AARDVARKDNS_VERSION https://github.com/containers/aardvark-dns
 WORKDIR /aardvark-dns
 ENV RUSTFLAGS='-C link-arg=-s'
@@ -138,7 +138,7 @@ RUN set -ex; \
 # Download crun
 # (switched keyserver from sks to ubuntu since sks is offline now and gpg refuses to import keys from keys.openpgp.org because it does not provide a user ID with the key.)
 FROM gpg AS crun
-ARG CRUN_VERSION=1.15
+ARG CRUN_VERSION=1.16.1
 RUN set -ex; \
 	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
 	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
@@ -150,7 +150,7 @@ RUN set -ex; \
 
 
 # Build podman base image
-FROM alpine:3.19 AS podmanbase
+FROM alpine:3.20 AS podmanbase
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
