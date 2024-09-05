@@ -123,7 +123,7 @@ make images test
 Before uninstalling the binaries, you may remove containers, pods, images, volumes, and so on to free up space:
 
 ```sh
-podman system reset
+sudo podman system reset
 ```
 
 Next, remove all the copied binaries from the following folders:
