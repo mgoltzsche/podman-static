@@ -117,3 +117,21 @@ The default storage location depends on the user:
 ```sh
 make images test
 ```
+
+## Binary uninstallation
+
+Before uninstalling the binaries, you may remove containers, pods, images, volumes, and so on to free up space:
+
+```sh
+sudo podman system reset
+```
+
+Next, remove all the copied binaries from the following folders:
+
+```sh
+sudo rm -rf /etc/containers/*
+sudo rm -rf /usr/lib/systemd/system/podman*
+sudo rm -rf /usr/lib/systemd/user/podman*
+sudo rm -rf /usr/local/bin/{crun,fuse-overlayfs,fusermount3,pasta,pasta.avx2,podman,runc}
+sudo rm -rf /usr/local/lib/podman
+```
