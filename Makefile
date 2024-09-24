@@ -32,6 +32,7 @@ BUILDX_OPTS ?= --builder=$(BUILDX_BUILDER) --output=$(BUILDX_OUTPUT) --platform=
 ASSET_NAME := podman-linux-$(ARCH)
 ASSET_DIR := $(BUILD_DIR)/asset/$(ASSET_NAME)
 
+
 images: podman podman-remote podman-minimal
 
 multiarch-tar multiarch-images: PLATFORM = linux/arm64/v8,linux/amd64
@@ -150,7 +151,7 @@ run:
 		$(PODMAN_IMAGE) /bin/sh
 
 clean:
-	$(DOCKER) run --rm -v "`pwd`:/work" alpine:3.19 rm -rf /work/build
+	$(DOCKER) run --rm -v "`pwd`:/work" alpine:3.20 rm -rf /work/build
 
 run-server: podman-ssh
 	# TODO: make sshd log to stdout (while still ensuring that we know when it is available)
