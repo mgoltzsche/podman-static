@@ -30,4 +30,3 @@ jobs:
 
     - name: Build multi-arch images and binaries
       run: make clean multiarch-tar
-
