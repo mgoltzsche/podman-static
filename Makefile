@@ -43,6 +43,13 @@ multiarch-tar: images tar-all
 multiarch-images: BUILDX_OUTPUT = type=image
 multiarch-images: images
 
+# Single arch builds don't have nested arch directory, thus set path as for multiarch
+singlearch-tar: BUILDX_OUTPUT = type=local,dest=$(IMAGE_EXPORT_DIR)/linux_$(ARCH)
+singlearch-tar: TAR_TARGET ?= tar
+singlearch-tar: images
+singlearch-tar:
+	make $(TAR_TARGET) PLATFORM="$(PLATFORM)" BUILDX_BUILDER="$(BUILDX_BUILDER)"
+
 tar-all:
 	@{ \
 	set -e ;\
