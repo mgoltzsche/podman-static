@@ -72,6 +72,8 @@ For more information see [podman's rootless installation instructions](https://g
 
 ### Host configuration
 
+#### Additional binaries
+
 The following binaries should be installed on your host:
 * `iptables`
 * `nsenter`
@@ -79,12 +81,24 @@ The following binaries should be installed on your host:
 
 [nftables](https://netfilter.org/projects/nftables/) (with or without optional iptables-nft wrapper) to be included in the future [WIP](https://github.com/containers/netavark/pull/883).  
 
+#### UID/GID mapping
+
 In order to run rootless containers that use multiple uids/gids you may want to set up a uid/gid mapping for your user on your host:
-```
+```sh
 sudo sh -c "echo $(id -un):100000:200000 >> /etc/subuid"
 sudo sh -c "echo $(id -gn):100000:200000 >> /etc/subgid"
 ```
 _Please make sure you don't add the mapping multiple times._  
+
+#### apparmor profile
+
+On an apparmor-enabled host such as Ubuntu >=23.04, podman may fail with `reexec: Permission denied` the first time it is run.
+In that case you have to change your podman apparmor profile at `/etc/apparmor.d/podman` so that it also applies to `/usr/local/bin/podman` as follows (also see [here](https://github.com/containers/podman/issues/24642#issuecomment-2582629496)):
+```sh
+sudo sed -Ei 's!^profile podman /usr/bin/podman !profile podman /usr/{bin,local/bin}/podman !' /etc/apparmor.d/podman
+```
+
+#### docker link
 
 To support applications that rely on the `docker` command, a quick option is to link `podman` as follows:
 ```sh
