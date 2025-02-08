@@ -92,7 +92,7 @@ _Please make sure you don't add the mapping multiple times._
 
 #### apparmor profile
 
-On an apparmor-enabled host such as Ubuntu >=23.04, podman may fail with `reexec: Permission denied` the first time it is run.
+On an apparmor-enabled host such as Ubuntu >=23.10, podman may fail with `reexec: Permission denied` the first time it is run.
 In that case you have to change your podman apparmor profile at `/etc/apparmor.d/podman` so that it also applies to `/usr/local/bin/podman` as follows (also see [here](https://github.com/containers/podman/issues/24642#issuecomment-2582629496)):
 ```sh
 sudo sed -Ei 's!^profile podman /usr/bin/podman !profile podman /usr/{bin,local/bin}/podman !' /etc/apparmor.d/podman
@@ -107,7 +107,7 @@ sudo ln -s /usr/local/bin/podman /usr/local/bin/docker
 
 Before updating binaries on your host please terminate all corresponding processes.  
 
-### Restart containers on boot
+#### Restart containers on boot
 
 To restart containers with restart-policy=always on boot, enable the `podman-restart` systemd service:
 ```sh
