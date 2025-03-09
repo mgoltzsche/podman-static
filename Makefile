@@ -114,8 +114,13 @@ tar: .podman-from-container
 .podman-from-container: podman
 	rm -rf $(ASSET_DIR)
 	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local
+	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/lib/systemd/user-generators/
+	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/lib/systemd/system-generators/
 	cp -r $(IMAGE_ROOTFS)/etc/containers $(ASSET_DIR)/etc/containers
 	cp -r $(IMAGE_ROOTFS)/usr/local/lib $(ASSET_DIR)/usr/local/lib
+	cp -r $(IMAGE_ROOTFS)/usr/local/libexec $(ASSET_DIR)/usr/local/libexec
+	ln -s ../../../local/libexec/podman/quadlet $(ASSET_DIR)/usr/lib/systemd/user-generators/podman-user-generator
+	ln -s ../../../local/libexec/podman/quadlet $(ASSET_DIR)/usr/lib/systemd/system-generators/podman-system-generator
 	cp -r $(IMAGE_ROOTFS)/usr/local/bin $(ASSET_DIR)/usr/local/bin
 	cp README.md $(ASSET_DIR)/
 

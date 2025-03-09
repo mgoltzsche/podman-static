@@ -43,6 +43,13 @@ RUN set -ex; \
 	podman --help >/dev/null; \
 	! ldd /usr/local/bin/podman
 RUN set -ex; \
+# overwrites the default bin directory so quadlet looks for the podman binary in /usr/local/bin
+	export LDFLAGS_QUADLET="-X github.com/containers/podman/v5/pkg/systemd/quadlet._binDir=/usr/local/bin"; \
+	CGO_ENABLED=0 make bin/quadlet LDFLAGS_PODMAN="-s -w -extldflags '-static' ${LDFLAGS_QUADLET}" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
+	mkdir -p /usr/local/libexec/podman; \
+        mv bin/quadlet /usr/local/libexec/podman/quadlet; \
+	! ldd /usr/local/libexec/podman/quadlet
+RUN set -ex; \
 	CGO_ENABLED=0 make bin/rootlessport BUILDFLAGS=" -mod=vendor -ldflags=\"-s -w -extldflags '-static'\""; \
 	mkdir -p /usr/local/lib/podman; \
 	mv bin/rootlessport /usr/local/lib/podman/rootlessport; \
@@ -155,6 +162,7 @@ LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
 COPY --from=podman /usr/local/lib/podman/rootlessport /usr/local/lib/podman/rootlessport
+COPY --from=podman /usr/local/libexec/podman/quadlet /usr/local/libexec/podman/quadlet
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY --from=passt /passt/bin/ /usr/local/bin/
 COPY --from=netavark /netavark/target/release/netavark /usr/local/lib/podman/netavark
