@@ -162,7 +162,6 @@ LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
 COPY --from=podman /usr/local/lib/podman/rootlessport /usr/local/lib/podman/rootlessport
-COPY --from=podman /usr/local/libexec/podman/quadlet /usr/local/libexec/podman/quadlet
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY --from=passt /passt/bin/ /usr/local/bin/
 COPY --from=netavark /netavark/target/release/netavark /usr/local/lib/podman/netavark
@@ -196,6 +195,7 @@ COPY conf/crun-containers.conf /etc/containers/containers.conf
 FROM rootlesspodmanbase AS podmanall
 RUN apk add --no-cache iptables ip6tables
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
+COPY --from=podman /usr/local/libexec/podman/quadlet /usr/local/libexec/podman/quadlet
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/lib/podman/aardvark-dns
 COPY --from=podman /etc/containers/seccomp.json /etc/containers/seccomp.json
