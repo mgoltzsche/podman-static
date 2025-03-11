@@ -46,7 +46,7 @@ skipIfDockerUnavailableAndNotRunAsRoot() {
 	$DOCKER run --rm -u podman:podman \
 		-v "$BATS_TEST_DIRNAME/quadlet/hello_world.container:/etc/containers/systemd/hello_world.container" \
 		--pull=never "${PODMAN_IMAGE}" \
-		/usr/local/libexec/podman/quadlet -dryrun > $PODMAN_ROOT_DATA_DIR/test.service
+		/usr/local/libexec/podman/quadlet -dryrun > /tmp/test.service # this goes to tmp because we are not root below
 
 	expected_values=(
         "--name hello_world"
