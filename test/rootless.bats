@@ -72,7 +72,7 @@ teardown_file() {
 		skip "TEST_SKIP_QUADLET=true"
 	fi
 	$DOCKER run --rm -u podman:podman \
-		-v "./quadlet/hello_world.container:/podman/.config/containers/systemd/hello_world.container" \
+		-v "$BATS_TEST_DIRNAME/quadlet/hello_world.container:/podman/.config/containers/systemd/hello_world.container" \
 		--pull=never "${PODMAN_IMAGE}" \
 		/usr/local/libexec/podman/quadlet -dryrun -user > $PODMAN_ROOT_DATA_DIR/test.service
 
