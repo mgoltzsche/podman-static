@@ -67,7 +67,7 @@ teardown_file() {
 		podman play kube /pod.yaml
 }
 
-@test "$TEST_PREFIX quedlet - generate service" {
+@test "$TEST_PREFIX quadlet - generate service" {
 	if [ "${TEST_SKIP_QUADLET:-}" = true ]; then
 		skip "TEST_SKIP_QUADLET=true"
 	fi

@@ -39,7 +39,7 @@ skipIfDockerUnavailableAndNotRunAsRoot() {
 	testPortForwarding -u root:root -v "$PODMAN_ROOT_DATA_DIR:/var/lib/containers/storage" "${PODMAN_IMAGE}"
 }
 
-@test "$TEST_PREFIX quedlet - generate service" {
+@test "$TEST_PREFIX quadlet - generate service" {
 	if [ "${TEST_SKIP_QUADLET:-}" = true ]; then
 		skip "TEST_SKIP_QUADLET=true"
 	fi
