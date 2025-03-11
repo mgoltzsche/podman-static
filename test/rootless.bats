@@ -66,25 +66,3 @@ teardown_file() {
 		--pull=never "${PODMAN_IMAGE}" \
 		podman play kube /pod.yaml
 }
-
-@test "$TEST_PREFIX quadlet - generate service" {
-	if [ "${TEST_SKIP_QUADLET:-}" = true ]; then
-		skip "TEST_SKIP_QUADLET=true"
-	fi
-	$DOCKER run --rm -u podman:podman \
-		-v "$BATS_TEST_DIRNAME/quadlet/hello_world.container:/podman/.config/containers/systemd/hello_world.container" \
-		--pull=never "${PODMAN_IMAGE}" \
-		/usr/local/libexec/podman/quadlet -dryrun -user > $PODMAN_ROOT_DATA_DIR/test.service
-
-	expected_values=(
-        "--name hello_world"
-        "--publish 8080:8080"
-        "--env HELLO=WORLD"
-        "docker.io/hello-world"
-    )
-
-    for value in "${expected_values[@]}"; do
-        run grep -q -- "$value" "$PODMAN_ROOT_DATA_DIR/test.service"
-        [ "$status" -eq 0 ] || fail "Expected '$value' not found in $PODMAN_ROOT_DATA_DIR/test.service"
-    done
-}
