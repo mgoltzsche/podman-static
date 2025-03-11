@@ -46,7 +46,7 @@ skipIfDockerUnavailableAndNotRunAsRoot() {
 	$DOCKER run --rm -u podman:podman \
 		-v "./quadlet/hello_world.container:/etc/containers/systemd/hello_world.container" \
 		--pull=never "${PODMAN_IMAGE}" \
-		quadlet -dryrun > $PODMAN_ROOT_DATA_DIR/test.service
+		/usr/local/libexec/podman/quadlet -dryrun > $PODMAN_ROOT_DATA_DIR/test.service
 
 	expected_values=(
         "--name hello_world"
