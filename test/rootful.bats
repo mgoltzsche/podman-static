@@ -56,7 +56,7 @@ skipIfDockerUnavailableAndNotRunAsRoot() {
     )
 
     for value in "${expected_values[@]}"; do
-        run grep -q -- "$value" "$PODMAN_ROOT_DATA_DIR/test.service"
-        [ "$status" -eq 0 ] || fail "Expected '$value' not found in $PODMAN_ROOT_DATA_DIR/test.service"
+        run grep -q -- "$value" "/tmp/test.service"
+        [ "$status" -eq 0 ] || fail "Expected '$value' not found in /tmp/test.service"
     done
 }
