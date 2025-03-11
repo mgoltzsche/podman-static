@@ -38,3 +38,25 @@ skipIfDockerUnavailableAndNotRunAsRoot() {
 	skipIfDockerUnavailableAndNotRunAsRoot
 	testPortForwarding -u root:root -v "$PODMAN_ROOT_DATA_DIR:/var/lib/containers/storage" "${PODMAN_IMAGE}"
 }
+
+@test "$TEST_PREFIX quedlet - generate service" {
+	if [ "${TEST_SKIP_QUADLET:-}" = true ]; then
+		skip "TEST_SKIP_QUADLET=true"
+	fi
+	$DOCKER run --rm -u podman:podman \
+		-v "./quadlet/hello_world.container:/etc/containers/systemd/hello_world.container" \
+		--pull=never "${PODMAN_IMAGE}" \
+		quadlet -dryrun > $PODMAN_ROOT_DATA_DIR/test.service
+
+	expected_values=(
+        "--name hello_world"
+        "--publish 8080:8080"
+        "--env HELLO=WORLD"
+        "docker.io/hello-world"
+    )
+
+    for value in "${expected_values[@]}"; do
+        run grep -q "$value" "$PODMAN_ROOT_DATA_DIR/test.service"
+        [ "$status" -eq 0 ] || fail "Expected '$value' not found in $PODMAN_ROOT_DATA_DIR/test.service"
+    done
+}
