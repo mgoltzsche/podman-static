@@ -148,4 +148,5 @@ sudo rm -rf /usr/lib/systemd/system/podman*
 sudo rm -rf /usr/lib/systemd/user/podman*
 sudo rm -rf /usr/local/bin/{crun,fuse-overlayfs,fusermount3,pasta,pasta.avx2,podman,runc}
 sudo rm -rf /usr/local/lib/podman
+sudo rm -rf /usr/local/libexec/podman
 ```
