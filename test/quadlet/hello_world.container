@@ -1,0 +1,19 @@
+[Unit]
+Description=hello_world
+After=local-fs.target
+
+[Container]
+Image=docker.io/hello-world
+ContainerName=hello_world
+
+# Network
+PublishPort=8080:8080
+
+# Environment
+Environment=HELLO=WORLD
+
+[Service]
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target default.target
