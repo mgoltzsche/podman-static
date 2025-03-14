@@ -3,6 +3,7 @@ PODMAN_IMAGE ?= $(PODMAN_IMAGE_NAME):latest
 PODMAN_IMAGE_TARGET ?= podmanall
 PODMAN_MINIMAL_IMAGE ?= $(PODMAN_IMAGE)-minimal
 PODMAN_REMOTE_IMAGE ?= $(PODMAN_IMAGE)-remote
+PODMAN_TAR_IMAGE ?= $(PODMAN_IMAGE)-tar
 PODMAN_SSH_IMAGE ?= mgoltzsche/podman-ssh
 PODMAN_BUILD_OPTS ?= -t $(PODMAN_IMAGE)
 PODMAN_MINIMAL_BUILD_OPTS ?= -t $(PODMAN_MINIMAL_IMAGE)
@@ -23,7 +24,7 @@ DOCKER ?= docker
 export DOCKER
 PLATFORM ?= linux/amd64
 ARCH = $(shell echo "$(PLATFORM)" | sed -E 's!linux/([^/]+).*!\1!')
-IMAGE_EXPORT_DIR = $(BUILD_DIR)/images/$@
+IMAGE_EXPORT_DIR = $(BUILD_DIR)/images/podman
 BUILDX_BUILDER ?= podman-builder
 # TODO: just push the other image and build tar files from output, skip tests for other platforms for now
 BUILDX_OUTPUT ?= type=docker
@@ -33,12 +34,12 @@ ASSET_NAME := podman-linux-$(ARCH)
 ASSET_DIR := $(BUILD_DIR)/asset/$(ASSET_NAME)
 
 
-images: podman podman-remote podman-minimal
+images: podman podman-remote podman-minimal podman-tar-image
 
 multiarch-tar multiarch-images: PLATFORM = linux/arm64/v8,linux/amd64
 multiarch-tar: BUILDX_OUTPUT = type=local,dest=$(IMAGE_EXPORT_DIR)
 multiarch-tar: TAR_TARGET ?= tar
-multiarch-tar: images tar-all
+multiarch-tar: podman-tar-image tar-all
 
 multiarch-images: BUILDX_OUTPUT = type=image
 multiarch-images: images
@@ -46,7 +47,7 @@ multiarch-images: images
 # Single arch builds don't have nested arch directory, thus set path as for multiarch
 singlearch-tar: BUILDX_OUTPUT = type=local,dest=$(IMAGE_EXPORT_DIR)/linux_$(ARCH)
 singlearch-tar: TAR_TARGET ?= tar
-singlearch-tar: images
+singlearch-tar: podman-tar-image
 singlearch-tar:
 	make $(TAR_TARGET) PLATFORM="$(PLATFORM)" BUILDX_BUILDER="$(BUILDX_BUILDER)"
 
@@ -61,6 +62,9 @@ tar-all:
 
 podman: create-builder
 	$(DOCKER) buildx build $(BUILDX_OPTS) --force-rm $(PODMAN_BUILD_OPTS) --target $(PODMAN_IMAGE_TARGET) .
+
+podman-tar-image:
+	$(DOCKER) buildx build $(BUILDX_OPTS) --force-rm -t $(PODMAN_TAR_IMAGE) --target tar-archive .
 
 podman-minimal: create-builder
 	make podman PODMAN_IMAGE_TARGET=rootlesspodmanminimal BUILDX_OPTS="$(BUILDX_OPTS)" PODMAN_BUILD_OPTS="$(PODMAN_MINIMAL_BUILD_OPTS)"
@@ -86,6 +90,7 @@ test-use-cases: $(BATS)
 	DOCKER=$(DOCKER) \
 	PODMAN_IMAGE=$(PODMAN_IMAGE) \
 	PODMAN_REMOTE_IMAGE=$(PODMAN_REMOTE_IMAGE) \
+	PODMAN_TAR_IMAGE=$(PODMAN_TAR_IMAGE) \
 	$(BATS) -T $(BATS_TEST)
 
 test-minimal-image: $(BATS)
@@ -111,7 +116,7 @@ tar: .podman-from-container
 	tar -C $(ASSET_DIR)/.. -czvf $(ASSET_DIR).tar.gz $(ASSET_NAME)
 
 .podman-from-container: IMAGE_ROOTFS = $(BUILD_DIR)/images/podman/linux_$(ARCH)
-.podman-from-container: podman
+.podman-from-container: podman-tar-image
 	rm -rf $(ASSET_DIR)
 	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local
 	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/lib/systemd/user-generators/
