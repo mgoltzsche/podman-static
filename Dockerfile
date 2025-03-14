@@ -195,7 +195,11 @@ COPY conf/crun-containers.conf /etc/containers/containers.conf
 FROM rootlesspodmanbase AS podmanall
 RUN apk add --no-cache iptables ip6tables
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
-COPY --from=podman /usr/local/libexec/podman/quadlet /usr/local/libexec/podman/quadlet
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/lib/podman/aardvark-dns
 COPY --from=podman /etc/containers/seccomp.json /etc/containers/seccomp.json
+
+FROM podmanall AS tar-archive
+COPY --from=podman /usr/local/libexec/podman/quadlet /usr/local/libexec/podman/quadlet
+
+FROM podmanall
