@@ -106,27 +106,20 @@ install:
 
 tar: .podman-from-container
 	rm -f $(ASSET_DIR).tar.gz
-	mkdir -p $(ASSET_DIR)/usr/lib/systemd/system
-	mkdir -p $(ASSET_DIR)/usr/lib/systemd/user
-	cp -f conf/systemd/podman-restart.service $(ASSET_DIR)/usr/lib/systemd/system/podman-restart.service
-	cp -f conf/systemd/podman.service $(ASSET_DIR)/usr/lib/systemd/system/podman.service
-	cp -f conf/systemd/podman.socket $(ASSET_DIR)/usr/lib/systemd/system/podman.socket
-	cp -f conf/systemd/podman.service $(ASSET_DIR)/usr/lib/systemd/user/podman.service
-	cp -f conf/systemd/podman.socket $(ASSET_DIR)/usr/lib/systemd/user/podman.socket
+	install -Dm644 -t $(ASSET_DIR)/usr/lib/systemd/system \
+		conf/systemd/{podman-restart.service,podman.service,podman.socket}
+	install -Dm644 -t $(ASSET_DIR)/usr/lib/systemd/user \
+		conf/systemd/{podman-restart.service,podman.service,podman.socket}
 	tar -C $(ASSET_DIR)/.. -czvf $(ASSET_DIR).tar.gz $(ASSET_NAME)
 
 .podman-from-container: IMAGE_ROOTFS = $(BUILD_DIR)/images/podman/linux_$(ARCH)
 .podman-from-container: podman-tar-image
 	rm -rf $(ASSET_DIR)
-	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local
-	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/lib/systemd/user-generators/
-	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/lib/systemd/system-generators/
-	cp -r $(IMAGE_ROOTFS)/etc/containers $(ASSET_DIR)/etc/containers
-	cp -r $(IMAGE_ROOTFS)/usr/local/lib $(ASSET_DIR)/usr/local/lib
-	cp -r $(IMAGE_ROOTFS)/usr/local/libexec $(ASSET_DIR)/usr/local/libexec
+	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local $(ASSET_DIR)/usr/lib/systemd/{system,user}-generators
+	cp -rt $(ASSET_DIR)/etc $(IMAGE_ROOTFS)/etc/containers
+	cp -rt $(ASSET_DIR)/usr/local $(IMAGE_ROOTFS)/usr/local/{bin,lib,libexec}
 	ln -s ../../../local/libexec/podman/quadlet $(ASSET_DIR)/usr/lib/systemd/user-generators/podman-user-generator
 	ln -s ../../../local/libexec/podman/quadlet $(ASSET_DIR)/usr/lib/systemd/system-generators/podman-system-generator
-	cp -r $(IMAGE_ROOTFS)/usr/local/bin $(ASSET_DIR)/usr/local/bin
 	cp README.md $(ASSET_DIR)/
 
 signed-tar: tar .gpg

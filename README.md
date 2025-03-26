@@ -144,10 +144,8 @@ Next, remove all the copied binaries from the following folders:
 
 ```sh
 sudo rm -rf /etc/containers/*
-sudo rm -rf /usr/lib/systemd/system/podman*
-sudo rm -rf /usr/lib/systemd/user/podman*
 sudo rm -rf /usr/local/bin/{crun,fuse-overlayfs,fusermount3,pasta,pasta.avx2,podman,runc}
-sudo rm -rf /usr/local/lib/podman
-sudo rm -rf /usr/local/libexec/podman
-sudo rm /usr/lib/systemd/{user,system}-generators/podman-user-generator
+sudo rm -rf /usr/local/{lib,libexec}/podman
+sudo rm -rf /usr/lib/systemd/{system,user}/podman*
+sudo rm /usr/lib/systemd/{system,user}-generators/podman-*-generator
 ```
