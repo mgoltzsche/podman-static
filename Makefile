@@ -106,20 +106,20 @@ install:
 
 tar: .podman-from-container
 	rm -f $(ASSET_DIR).tar.gz
-	install -Dm644 -t $(ASSET_DIR)/usr/lib/systemd/system \
+	install -Dm644 -t $(ASSET_DIR)/usr/local/lib/systemd/system \
 		conf/systemd/{podman-restart.service,podman.service,podman.socket}
-	install -Dm644 -t $(ASSET_DIR)/usr/lib/systemd/user \
+	install -Dm644 -t $(ASSET_DIR)/usr/local/lib/systemd/user \
 		conf/systemd/{podman-restart.service,podman.service,podman.socket}
 	tar -C $(ASSET_DIR)/.. -czvf $(ASSET_DIR).tar.gz $(ASSET_NAME)
 
 .podman-from-container: IMAGE_ROOTFS = $(BUILD_DIR)/images/podman/linux_$(ARCH)
 .podman-from-container: podman-tar-image
 	rm -rf $(ASSET_DIR)
-	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local $(ASSET_DIR)/usr/lib/systemd/{system,user}-generators
+	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local/lib/systemd/{system,user}-generators
 	cp -rt $(ASSET_DIR)/etc $(IMAGE_ROOTFS)/etc/containers
 	cp -rt $(ASSET_DIR)/usr/local $(IMAGE_ROOTFS)/usr/local/{bin,lib,libexec}
-	ln -s ../../../local/libexec/podman/quadlet $(ASSET_DIR)/usr/lib/systemd/user-generators/podman-user-generator
-	ln -s ../../../local/libexec/podman/quadlet $(ASSET_DIR)/usr/lib/systemd/system-generators/podman-system-generator
+	ln -s ../../../libexec/podman/quadlet $(ASSET_DIR)/usr/local/lib/systemd/user-generators/podman-user-generator
+	ln -s ../../../libexec/podman/quadlet $(ASSET_DIR)/usr/local/lib/systemd/system-generators/podman-system-generator
 	cp README.md $(ASSET_DIR)/
 
 signed-tar: tar .gpg
