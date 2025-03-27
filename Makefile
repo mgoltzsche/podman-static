@@ -1,3 +1,5 @@
+SHELL := /usr/bin/env bash
+
 PODMAN_IMAGE_NAME ?= mgoltzsche/podman
 PODMAN_IMAGE ?= $(PODMAN_IMAGE_NAME):latest
 PODMAN_IMAGE_TARGET ?= podmanall
