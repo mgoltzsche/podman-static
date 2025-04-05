@@ -191,7 +191,7 @@ COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
 FROM rootlesspodmanbase AS rootlesspodmanminimal
 COPY conf/crun-containers.conf /etc/containers/containers.conf
 
-# Build podman image with all binaries
+# Build podman image with rootless binaries
 FROM rootlesspodmanbase AS podmanall
 RUN apk add --no-cache iptables ip6tables
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
@@ -199,7 +199,37 @@ COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/lib/podman/aardvark-dns
 COPY --from=podman /etc/containers/seccomp.json /etc/containers/seccomp.json
 
-FROM podmanall AS tar-archive
+# 2025-04-05 kbee Comment this out because we use 'make tar', and the 'tar' target
+# uses the 'tar-archive' target here. We define it below based on the rootfulall target.
+#FROM podmanall AS tar-archive
+#COPY --from=podman /usr/local/libexec/podman/quadlet /usr/local/libexec/podman/quadlet
+#
+#FROM podmanall
+
+
+# Build podman image with rootful podman binaries with runc.
+# Based on podmanbase
+FROM alpine:3.20 AS rootfulall
+LABEL maintainer="Ken Bannister <kb2ma@runbox.com>"
+RUN apk add --no-cache tzdata ca-certificates
+COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
+COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
+COPY --from=netavark /netavark/target/release/netavark /usr/local/lib/podman/netavark
+COPY conf/containers /etc/containers
+
+# Based on rootlesspodmanbase, but skipping crun for now
+ENV BUILDAH_ISOLATION=chroot container=oci
+# Based on podmanall
+# Guessing at what is necessary.
+#RUN apk add --no-cache iptables ip6tables
+#COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
+COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
+#COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/lib/podman/aardvark-dns
+COPY --from=podman /etc/containers/seccomp.json /etc/containers/seccomp.json
+
+# See note above on tar-archive target.
+FROM rootfulall AS tar-archive
 COPY --from=podman /usr/local/libexec/podman/quadlet /usr/local/libexec/podman/quadlet
 
-FROM podmanall
+FROM rootfulall
+
