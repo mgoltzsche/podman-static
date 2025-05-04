@@ -9,8 +9,8 @@ After=network-online.target
 Type=oneshot
 RemainAfterExit=true
 Environment=LOGGING="--log-level=info"
-ExecStart=podman $LOGGING start --all --filter restart-policy=always
-ExecStop=/bin/sh -c 'podman $LOGGING stop $(podman container ls --filter restart-policy=always -q)'
+ExecStart=podman $LOGGING start --all --filter restart-policy=always --filter restart-policy=unless-stopped
+ExecStop=/bin/sh -c 'podman $LOGGING stop $(podman container ls --filter restart-policy=always --restart-policy=unless-stopped -q)'
 
 [Install]
 WantedBy=default.target
