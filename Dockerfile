@@ -4,8 +4,8 @@ RUN apk add --no-cache gnupg
 
 
 # runc
-FROM golang:1.22-alpine3.20 AS runc
-ARG RUNC_VERSION=v1.2.6
+FROM golang:1.23-alpine3.20 AS runc
+ARG RUNC_VERSION=v1.3.0
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
 	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
@@ -16,7 +16,7 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.22-alpine3.20 AS podmanbuildbase
+FROM golang:1.23-alpine3.20 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -27,7 +27,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v5.4.2
+ARG PODMAN_VERSION=v5.5.0
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -73,7 +73,7 @@ RUN apk add --update --no-cache git make musl-dev
 # netavark
 FROM rustbase AS netavark
 RUN apk add --update --no-cache protoc
-ARG NETAVARK_VERSION=v1.14.1
+ARG NETAVARK_VERSION=v1.15.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$NETAVARK_VERSION https://github.com/containers/netavark
 WORKDIR /netavark
 ENV RUSTFLAGS='-C link-arg=-s'
@@ -82,7 +82,7 @@ RUN cargo build --release
 
 # aardvark-dns
 FROM rustbase AS aardvark-dns
-ARG AARDVARKDNS_VERSION=v1.14.0
+ARG AARDVARKDNS_VERSION=v1.15.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$AARDVARKDNS_VERSION https://github.com/containers/aardvark-dns
 WORKDIR /aardvark-dns
 ENV RUSTFLAGS='-C link-arg=-s'
@@ -93,7 +93,7 @@ RUN cargo build --release
 FROM podmanbuildbase AS passt
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-ARG PASST_VERSION=2025_03_20.32f6212
+ARG PASST_VERSION=2025_05_12.8ec1341
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION git://passt.top/passt
 WORKDIR /passt
 RUN set -ex; \
