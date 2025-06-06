@@ -159,7 +159,7 @@ RUN set -ex; \
 # Build podman base image
 FROM alpine:3.20 AS podmanbase
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
-RUN apk add --no-cache tzdata ca-certificates
+RUN apk add --no-cache tzdata ca-certificates bash
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
 COPY --from=podman /usr/local/lib/podman/rootlessport /usr/local/lib/podman/rootlessport
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
