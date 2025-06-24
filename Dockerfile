@@ -1,10 +1,10 @@
 # Download gpg
-FROM alpine:3.20 AS gpg
+FROM alpine:3.22 AS gpg
 RUN apk add --no-cache gnupg
 
 
 # runc
-FROM golang:1.23-alpine3.20 AS runc
+FROM golang:1.24-alpine3.22 AS runc
 ARG RUNC_VERSION=v1.3.0
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
@@ -16,7 +16,7 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.23-alpine3.20 AS podmanbuildbase
+FROM golang:1.24-alpine3.22 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -27,7 +27,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v5.5.1
+ARG PODMAN_VERSION=v5.5.2
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -59,6 +59,7 @@ RUN set -ex; \
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
 ARG CONMON_VERSION=v2.1.13
+RUN apk add --update --no-cache pcre2-static
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
 RUN set -ex; \
@@ -66,7 +67,7 @@ RUN set -ex; \
 	bin/conmon --help >/dev/null
 
 
-FROM rust:1.78-alpine3.20 AS rustbase
+FROM rust:1.87-alpine3.22 AS rustbase
 RUN apk add --update --no-cache git make musl-dev
 
 
@@ -93,7 +94,7 @@ RUN cargo build --release
 FROM podmanbuildbase AS passt
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-ARG PASST_VERSION=2025_05_12.8ec1341
+ARG PASST_VERSION=2025_06_11.0293c6f
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION git://passt.top/passt
 WORKDIR /passt
 RUN set -ex; \
@@ -157,7 +158,7 @@ RUN set -ex; \
 
 
 # Build podman base image
-FROM alpine:3.20 AS podmanbase
+FROM alpine:3.22 AS podmanbase
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon

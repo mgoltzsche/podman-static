@@ -5,7 +5,7 @@ metadata:
 spec:
   containers:
   - name: build
-    image: alpine:3.17
+    image: alpine:3.22
     command: ["/bin/sh"]
     args:
     - -c
