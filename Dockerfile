@@ -1,11 +1,11 @@
 # Download gpg
-FROM alpine:3.22 AS gpg
+FROM alpine:3.22.1 AS gpg
 RUN apk add --no-cache gnupg
 
 
 # runc
-FROM golang:1.24-alpine3.22 AS runc
-ARG RUNC_VERSION=v1.3.0
+FROM golang:1.25.1-alpine3.22 AS runc
+ARG RUNC_VERSION=v1.3.1
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
 	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
@@ -16,7 +16,7 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.24-alpine3.22 AS podmanbuildbase
+FROM golang:1.25.1-alpine3.22 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -27,7 +27,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v5.6.0
+ARG PODMAN_VERSION=v5.6.1
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -67,14 +67,14 @@ RUN set -ex; \
 	bin/conmon --help >/dev/null
 
 
-FROM rust:1.87-alpine3.22 AS rustbase
+FROM rust:1.89-alpine3.22 AS rustbase
 RUN apk add --update --no-cache git make musl-dev
 
 
 # netavark
 FROM rustbase AS netavark
 RUN apk add --update --no-cache protoc
-ARG NETAVARK_VERSION=v1.15.0
+ARG NETAVARK_VERSION=v1.16.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$NETAVARK_VERSION https://github.com/containers/netavark
 WORKDIR /netavark
 ENV RUSTFLAGS='-C link-arg=-s'
@@ -83,7 +83,7 @@ RUN cargo build --release
 
 # aardvark-dns
 FROM rustbase AS aardvark-dns
-ARG AARDVARKDNS_VERSION=v1.15.0
+ARG AARDVARKDNS_VERSION=v1.16.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$AARDVARKDNS_VERSION https://github.com/containers/aardvark-dns
 WORKDIR /aardvark-dns
 ENV RUSTFLAGS='-C link-arg=-s'
@@ -119,7 +119,7 @@ RUN set -ex; \
 	touch /dev/fuse; \
 	ninja install; \
 	fusermount3 -V
-ARG FUSEOVERLAYFS_VERSION=v1.14
+ARG FUSEOVERLAYFS_VERSION=v1.15
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -ex; \
@@ -158,7 +158,7 @@ RUN set -ex; \
 
 
 # Build podman base image
-FROM alpine:3.22 AS podmanbase
+FROM alpine:3.22.1 AS podmanbase
 LABEL maintainer="Max Goltzsche <max.goltzsche@gmail.com>"
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
