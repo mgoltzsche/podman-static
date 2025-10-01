@@ -1,10 +1,10 @@
 # Download gpg
-FROM alpine:3.22.1 AS gpg
+FROM alpine:3.22 AS gpg
 RUN apk add --no-cache gnupg
 
 
 # runc
-FROM golang:1.25.1-alpine3.22 AS runc
+FROM golang:1.25-alpine3.22 AS runc
 ARG RUNC_VERSION=v1.3.1
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
@@ -16,7 +16,7 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.25.1-alpine3.22 AS podmanbuildbase
+FROM golang:1.25-alpine3.22 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -27,7 +27,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v5.6.1
+ARG PODMAN_VERSION=v5.6.2
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -67,7 +67,7 @@ RUN set -ex; \
 	bin/conmon --help >/dev/null
 
 
-FROM rust:1.89-alpine3.22 AS rustbase
+FROM rust:1.90-alpine3.22 AS rustbase
 RUN apk add --update --no-cache git make musl-dev
 
 
@@ -94,7 +94,7 @@ RUN cargo build --release
 FROM podmanbuildbase AS passt
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-ARG PASST_VERSION=2025_08_05.309eefd
+ARG PASST_VERSION=2025_09_19.623dbf6
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION git://passt.top/passt
 WORKDIR /passt
 RUN set -ex; \
@@ -146,7 +146,7 @@ RUN set -ex; \
 # Download crun
 # (switched keyserver from sks to ubuntu since sks is offline now and gpg refuses to import keys from keys.openpgp.org because it does not provide a user ID with the key.)
 FROM gpg AS crun
-ARG CRUN_VERSION=1.23.1
+ARG CRUN_VERSION=1.24
 RUN set -ex; \
 	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
 	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
