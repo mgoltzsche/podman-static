@@ -13,20 +13,15 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 
 
 # runc
-# BUILDMODE: pie = position-independent executable, exe = standard executable
 FROM golangbuildbase AS runc
 ARG RUNC_VERSION=v1.3.3
-ARG BUILDMODE=pie
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc
 WORKDIR $GOPATH/src/github.com/opencontainers/runc
 RUN set -eux; \
-	go build -ldflags "-s -w -linkmode external -extldflags '-static'" -buildmode="${BUILDMODE}"; \
+	make static EXTRA_LDFLAGS="-s -w"; \
 	make install; \
 	runc --version; \
-	case "$BUILDMODE" in \
-		exe)   ldd /usr/local/sbin/runc ;; \
-		pie) ! ldd /usr/local/sbin/runc ;; \
-	esac
+	ldd /usr/local/sbin/runc
 
 
 # podman (without systemd support)
