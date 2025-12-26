@@ -54,6 +54,11 @@ RUN set -ex; \
 	mkdir -p /usr/local/lib/podman; \
 	mv bin/rootlessport /usr/local/lib/podman/rootlessport; \
 	! ldd /usr/local/lib/podman/rootlessport
+# copying completions to /comp instead of /usr/local/share to avoid copying potentially other unwanted stuff in the final stage
+RUN set -eux; \
+	install -Dm644 -t /comp/bash-completion/completions/ completions/bash/podman; \
+	install -Dm644 -t /comp/zsh/site-functions/ completions/zsh/_podman; \
+	install -Dm644 -t /comp/fish/vendor_completions.d/ completions/fish/podman.fish
 
 
 # conmon (without systemd support)
@@ -164,6 +169,7 @@ RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
 COPY --from=podman /usr/local/lib/podman/rootlessport /usr/local/lib/podman/rootlessport
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
+COPY --from=podman /comp /usr/local/share
 COPY --from=passt /passt/bin/ /usr/local/bin/
 COPY --from=netavark /netavark/target/release/netavark /usr/local/lib/podman/netavark
 COPY conf/containers /etc/containers

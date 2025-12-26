@@ -140,7 +140,7 @@ Before uninstalling the binaries, you may remove containers, pods, images, volum
 sudo podman system reset
 ```
 
-Next, remove all the copied binaries from the following folders:
+Next, remove all the copied binaries and support files from the following folders:
 
 ```sh
 sudo rm -rf /etc/containers/*
@@ -148,4 +148,5 @@ sudo rm -rf /usr/local/bin/{crun,fuse-overlayfs,fusermount3,pasta,pasta.avx2,pod
 sudo rm -rf /usr/local/{lib,libexec}/podman
 sudo rm -rf /usr/local/lib/systemd/{system,user}/podman*
 sudo rm /usr/local/lib/systemd/{system,user}-generators/podman-*-generator
+sudo rm /usr/local/share/{bash-completion/completions/podman,zsh/site-functions/_podman,fish/vendor_completions.d/podman.fish}
 ```

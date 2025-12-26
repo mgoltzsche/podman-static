@@ -19,7 +19,13 @@ RUN set -eux; \
 	ln -s podman-remote /usr/local/bin/docker; \
 	podman --help >/dev/null; \
 	[ "$(ldd /usr/local/bin/podman-remote | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman-remote; false)
+# copying completions to /comp instead of /usr/local/share to avoid copying potentially other unwanted stuff in the final stage
+RUN set -eux; \
+	install -Dm644 -t /comp/bash-completion/completions/ completions/bash/podman-remote; \
+	install -Dm644 -t /comp/zsh/site-functions/ completions/zsh/_podman-remote; \
+	install -Dm644 -t /comp/fish/vendor_completions.d/ completions/fish/podman-remote.fish
 
 FROM alpine:3.22
 COPY --from=podman-remote /usr/local/bin /usr/local/bin
+COPY --from=podman-remote /comp /usr/local/share
 RUN adduser -D podman-remote -h /podman -u 1000
