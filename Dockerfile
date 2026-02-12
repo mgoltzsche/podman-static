@@ -27,7 +27,7 @@ RUN set -eux; \
 # podman (without systemd support)
 FROM golangbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v5.7.1
+ARG PODMAN_VERSION=v5.8.0
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -58,7 +58,7 @@ RUN set -ex; \
 
 # conmon (without systemd support)
 FROM golangbuildbase AS conmon
-ARG CONMON_VERSION=v2.1.13
+ARG CONMON_VERSION=v2.2.1
 RUN apk add --update --no-cache pcre2-static
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
@@ -74,7 +74,7 @@ RUN apk add --update --no-cache git make musl-dev
 # netavark
 FROM rustbase AS netavark
 RUN apk add --update --no-cache protoc
-ARG NETAVARK_VERSION=v1.17.0
+ARG NETAVARK_VERSION=v1.17.2
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$NETAVARK_VERSION https://github.com/containers/netavark
 WORKDIR /netavark
 ENV RUSTFLAGS='-C link-arg=-s'
@@ -94,7 +94,7 @@ RUN cargo build --release
 FROM golangbuildbase AS passt
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-ARG PASST_VERSION=2025_12_10.d04c480
+ARG PASST_VERSION=2026_01_20.386b5f5
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION git://passt.top/passt
 WORKDIR /passt
 RUN set -ex; \
@@ -108,7 +108,7 @@ RUN set -ex; \
 # fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM golangbuildbase AS fuse-overlayfs
 RUN apk add --update --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
-ARG LIBFUSE_VERSION=fuse-3.17.4
+ARG LIBFUSE_VERSION=fuse-3.18.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$LIBFUSE_VERSION https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -ex; \
@@ -146,7 +146,7 @@ RUN set -ex; \
 # crun
 FROM golangbuildbase AS crun
 RUN apk add --update --no-cache autoconf automake argp-standalone libtool libcap-dev libcap-static
-ARG CRUN_VERSION=1.25.1
+ARG CRUN_VERSION=1.26
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CRUN_VERSION} https://github.com/containers/crun src/github.com/containers/crun
 WORKDIR $GOPATH/src/github.com/containers/crun
 RUN set -ex; \
