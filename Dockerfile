@@ -87,6 +87,9 @@ RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$NETAVARK_VERSIO
 WORKDIR /netavark
 ENV RUSTFLAGS='-C link-arg=-s'
 RUN cargo build --release
+# generate unit files, then remove template files to make final assembly easier
+RUN make contrib/systemd/system/netavark-{dhcp-proxy,firewalld-reload,nftables-reload}.service; \
+	rm -f contrib/systemd/system/*.in
 
 
 # aardvark-dns
@@ -210,6 +213,7 @@ COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/li
 COPY --from=podman /etc/containers/seccomp.json /etc/containers/seccomp.json
 
 FROM podmanall AS tar-archive
+COPY --from=netavark /netavark/contrib/systemd/system /usr/local/lib/systemd/system/
 COPY --from=podman /usr/local/libexec/podman/quadlet /usr/local/libexec/podman/quadlet
 COPY --from=podman /systemd/ /usr/local/lib/systemd/
 

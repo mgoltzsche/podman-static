@@ -146,7 +146,7 @@ Next, remove all the copied binaries and support files from the following folder
 sudo rm -rf /etc/containers/*
 sudo rm -rf /usr/local/bin/{crun,fuse-overlayfs,fusermount3,pasta,pasta.avx2,podman,runc}
 sudo rm -rf /usr/local/{lib,libexec}/podman
-sudo rm -rf /usr/local/lib/systemd/{system,user}/podman*
+sudo rm -rf /usr/local/lib/systemd/{system,user}/{netavark,podman}*
 sudo rm /usr/local/lib/systemd/{system,user}-generators/podman-*-generator
 sudo rm /usr/local/share/{bash-completion/completions/podman,zsh/site-functions/_podman,fish/vendor_completions.d/podman.fish}
 ```
