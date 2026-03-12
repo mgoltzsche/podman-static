@@ -54,6 +54,9 @@ RUN set -ex; \
 	mkdir -p /usr/local/lib/podman; \
 	mv bin/rootlessport /usr/local/lib/podman/rootlessport; \
 	! ldd /usr/local/lib/podman/rootlessport
+# install systemd units to /systemd instead of /usr/local/lib/systemd to avoid copying potentially other units into the tar archive
+RUN set -eux; \
+	make install.systemd BUILDTAGS='systemd' LIBDIR=
 # copying completions to /comp instead of /usr/local/share to avoid copying potentially other unwanted stuff in the final stage
 RUN set -eux; \
 	install -Dm644 -t /comp/bash-completion/completions/ completions/bash/podman; \
@@ -208,5 +211,6 @@ COPY --from=podman /etc/containers/seccomp.json /etc/containers/seccomp.json
 
 FROM podmanall AS tar-archive
 COPY --from=podman /usr/local/libexec/podman/quadlet /usr/local/libexec/podman/quadlet
+COPY --from=podman /systemd/ /usr/local/lib/systemd/
 
 FROM podmanall
