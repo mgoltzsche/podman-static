@@ -87,9 +87,8 @@ RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$NETAVARK_VERSIO
 WORKDIR /netavark
 ENV RUSTFLAGS='-C link-arg=-s'
 RUN cargo build --release
-# generate unit files, then remove template files to make final assembly easier
-RUN make contrib/systemd/system/netavark-{dhcp-proxy,firewalld-reload,nftables-reload}.service; \
-	rm -f contrib/systemd/system/*.in
+# install systemd units to /systemd instead of /usr/local/lib/systemd to avoid copying potentially other units into the tar archive
+RUN make install.systemd-units SYSTEMDDIR=/systemd
 
 
 # aardvark-dns
