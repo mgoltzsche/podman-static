@@ -14,7 +14,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 
 # runc
 FROM golangbuildbase AS runc
-ARG RUNC_VERSION=v1.4.0
+ARG RUNC_VERSION=v1.4.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc
 WORKDIR $GOPATH/src/github.com/opencontainers/runc
 RUN set -eux; \
@@ -27,7 +27,7 @@ RUN set -eux; \
 # podman (without systemd support)
 FROM golangbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v5.8.0
+ARG PODMAN_VERSION=v5.8.1
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
