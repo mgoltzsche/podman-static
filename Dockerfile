@@ -14,7 +14,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 
 # runc
 FROM golangbuildbase AS runc
-ARG RUNC_VERSION=v1.4.1
+ARG RUNC_VERSION=v1.4.2
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc
 WORKDIR $GOPATH/src/github.com/opencontainers/runc
 RUN set -eux; \
@@ -27,7 +27,7 @@ RUN set -eux; \
 # podman (without systemd support)
 FROM golangbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v5.8.1
+ARG PODMAN_VERSION=v5.8.2
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -88,7 +88,7 @@ RUN cargo build --release
 
 # aardvark-dns
 FROM rustbase AS aardvark-dns
-ARG AARDVARKDNS_VERSION=v1.17.0
+ARG AARDVARKDNS_VERSION=v1.17.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$AARDVARKDNS_VERSION https://github.com/containers/aardvark-dns
 WORKDIR /aardvark-dns
 ENV RUSTFLAGS='-C link-arg=-s'
@@ -113,7 +113,7 @@ RUN set -ex; \
 # fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM golangbuildbase AS fuse-overlayfs
 RUN apk add --update --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
-ARG LIBFUSE_VERSION=fuse-3.18.1
+ARG LIBFUSE_VERSION=fuse-3.18.2
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$LIBFUSE_VERSION https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -ex; \
@@ -151,7 +151,7 @@ RUN set -ex; \
 # crun
 FROM golangbuildbase AS crun
 RUN apk add --update --no-cache autoconf automake argp-standalone libtool libcap-dev libcap-static
-ARG CRUN_VERSION=1.26
+ARG CRUN_VERSION=1.27
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CRUN_VERSION} https://github.com/containers/crun src/github.com/containers/crun
 WORKDIR $GOPATH/src/github.com/containers/crun
 RUN set -ex; \
