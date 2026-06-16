@@ -14,7 +14,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 
 # runc
 FROM golangbuildbase AS runc
-ARG RUNC_VERSION=v1.4.2
+ARG RUNC_VERSION=v1.4.3
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc
 WORKDIR $GOPATH/src/github.com/opencontainers/runc
 RUN set -eux; \
@@ -27,7 +27,7 @@ RUN set -eux; \
 # podman (without systemd support)
 FROM golangbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v5.8.2
+ARG PODMAN_VERSION=v5.8.3
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -99,7 +99,7 @@ RUN cargo build --release
 FROM golangbuildbase AS passt
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-ARG PASST_VERSION=2026_01_20.386b5f5
+ARG PASST_VERSION=2026_06_11.a9c61ff
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION git://passt.top/passt
 WORKDIR /passt
 RUN set -ex; \
@@ -150,8 +150,8 @@ RUN set -ex; \
 
 # crun
 FROM golangbuildbase AS crun
-RUN apk add --update --no-cache autoconf automake argp-standalone libtool libcap-dev libcap-static
-ARG CRUN_VERSION=1.27
+RUN apk add --update --no-cache autoconf automake argp-standalone libtool libcap-dev libcap-static json-c-dev
+ARG CRUN_VERSION=1.28
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CRUN_VERSION} https://github.com/containers/crun src/github.com/containers/crun
 WORKDIR $GOPATH/src/github.com/containers/crun
 RUN set -ex; \
