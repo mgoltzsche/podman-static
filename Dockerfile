@@ -4,7 +4,7 @@ RUN apk add --no-cache gnupg
 
 
 # golang build base
-FROM golang:1.27.0-alpine3.24 AS golangbuildbase
+FROM golang:1.27-alpine3.24 AS golangbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -12,7 +12,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	bash go-md2man
 
 
-FROM rust:1.96.1-alpine3.24 AS rustbase
+FROM rust:1.98-alpine3.24 AS rustbase
 RUN apk add --update --no-cache git make musl-dev
 
 
@@ -93,9 +93,12 @@ RUN make install.systemd SYSTEMDDIR=/systemd LIBEXECPODMAN=/usr/local/lib/podman
 
 # aardvark-dns
 FROM rustbase AS aardvark-dns
-ARG AARDVARKDNS_VERSION=v2.0.0
+ARG AARDVARKDNS_VERSION=v2.1.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$AARDVARKDNS_VERSION https://github.com/containers/aardvark-dns
+# backport close_range syscall for musl (upstream commit 9e73fd8, fixed in >2.1.0, containers/aardvark-dns#730)
+COPY patches/aardvark-dns-2.1.0-close_range.patch /tmp/aardvark-dns-close_range.patch
 WORKDIR /aardvark-dns
+RUN git apply /tmp/aardvark-dns-close_range.patch
 ENV RUSTFLAGS='-C link-arg=-s'
 RUN cargo build --release
 
@@ -104,14 +107,17 @@ RUN cargo build --release
 FROM golangbuildbase AS passt
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-ARG PASST_VERSION=2026_06_11.a9c61ff
+ARG PASST_VERSION=2026_07_28.f8df3f1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION https://passt.top/passt
+# backport linux_dep.h include for close_range (upstream commit defc25b, fixed after 2026_07_28)
+COPY patches/passt-2026_07_28-linux_dep-include.patch /tmp/passt-linux_dep-include.patch
 WORKDIR /passt
+RUN git apply /tmp/passt-linux_dep-include.patch
 RUN set -ex; \
 	make static; \
 	mkdir bin; \
 	mv passt pasta bin/; \
-	[ ! -f pasta.avx2 ] || mv pasta.avx2 bin/
+	[ ! -f passt.avx2 ] || { mv passt.avx2 pasta.avx2 bin/; }
 
 
 # fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
