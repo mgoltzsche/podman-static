@@ -88,7 +88,7 @@ WORKDIR /netavark
 ENV RUSTFLAGS='-C link-arg=-s'
 RUN cargo build --release
 # install systemd units to /systemd instead of /usr/local/lib/systemd to avoid copying potentially other units into the tar archive
-RUN make install.systemd SYSTEMDDIR=/systemd
+RUN make install.systemd SYSTEMDDIR=/systemd LIBEXECPODMAN=/usr/local/lib/podman
 
 
 # aardvark-dns
@@ -211,7 +211,7 @@ COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/li
 COPY --from=podman /etc/containers/seccomp.json /etc/containers/seccomp.json
 
 FROM podmanall AS tar-archive
-COPY --from=netavark /netavark/contrib/systemd/system /usr/local/lib/systemd/system/
+COPY --from=netavark /systemd/ /usr/local/lib/systemd/system/
 COPY --from=podman /usr/local/libexec/podman/quadlet /usr/local/libexec/podman/quadlet
 COPY --from=podman /systemd/ /usr/local/lib/systemd/
 
