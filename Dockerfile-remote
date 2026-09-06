@@ -1,5 +1,5 @@
 # podman build base
-FROM golang:1.27.0-alpine3.24 AS podmanbuildbase
+FROM golang:1.27-alpine3.24 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
