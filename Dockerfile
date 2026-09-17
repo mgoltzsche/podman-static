@@ -4,7 +4,7 @@ RUN apk add --no-cache gnupg
 
 
 # golang build base
-FROM golang:1.25-alpine3.22 AS golangbuildbase
+FROM golang:1.26-alpine3.22 AS golangbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -27,7 +27,7 @@ RUN set -eux; \
 # podman (without systemd support)
 FROM golangbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v5.8.4
+ARG PODMAN_VERSION=v5.8.7
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
