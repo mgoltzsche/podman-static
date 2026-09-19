@@ -1,0 +1,126 @@
+name: Release
+
+on:
+  push:
+    # Publish `master` as Docker `latest` image.
+    branches:
+    - master
+
+    # Publish `v1.2.3` tags as releases.
+    tags:
+    - v*
+
+  # Trigger the workflow on push or pull request on master branch
+  pull_request:
+    branches:
+    - master
+
+concurrency: # Run release builds sequentially, cancel outdated PR builds
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions: # Grant write access to github.token within non-pull_request builds
+  contents: write
+  packages: write
+
+env:
+  PODMAN_IMAGE: podman
+  PODMAN_MINIMAL_IMAGE: podman-minimal
+  PODMAN_REMOTE_IMAGE: podman-remote
+
+jobs:
+  push:
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push'
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Set up qemu
+      uses: docker/setup-qemu-action@v4
+      with:
+        platforms: all
+
+    - name: Print environment
+      run: |
+        uname -a
+        docker --version
+
+    - id: release
+      name: Prepare release
+      uses: mgoltzsche/conventional-release@v2
+      with:
+        auto-release: false
+        ignore-commits-before: a14f4b3ee9751ea232ef10b72e4923869ea8c3d7
+        github-release-draft: true
+        github-release-files: >
+          ./build/asset/podman-linux-arm64.tar.gz.asc
+          ./build/asset/podman-linux-arm64.tar.gz
+          ./build/asset/podman-linux-amd64.tar.gz.asc
+          ./build/asset/podman-linux-amd64.tar.gz
+
+    - name: Build & test
+      run: make images test
+
+    - name: Build multi-arch images and binaries
+      if: ${{ !steps.release.outputs.publish }}
+      run: make clean multiarch-tar
+
+    - name: Build signed archives
+      if: steps.release.outputs.publish
+      run: make clean multiarch-tar TAR_TARGET=signed-tar
+      env:
+        GPG_SIGN_KEY: ${{ secrets.GPG_SIGN_KEY }}
+        GPG_SIGN_KEY_PASSPHRASE: ${{ secrets.GPG_SIGN_KEY_PASSPHRASE }}
+
+    - name: Log into GitHub registry
+      if: steps.release.outputs.publish
+      run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Log into DockerHub registry
+      if: steps.release.outputs.publish
+      run: echo "$DOCKERHUB_TOKEN" | docker login docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      env:
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Push images
+      if: steps.release.outputs.publish
+      run: |
+        set -eu
+
+        GITHUB_IMAGE_REPO=ghcr.io/mgoltzsche/podman
+        GITHUB_IMAGE_REPO=$(echo $GITHUB_IMAGE_REPO | tr '[A-Z]' '[a-z]')
+        DOCKERHUB_IMAGE_REPO=docker.io/mgoltzsche/podman
+
+        # Strip git ref prefix from version
+        TAGS=$(echo "$GITHUB_REF" | sed -e 's,.*/\(.*\),\1,')
+        # Strip "v" prefix from tag name
+        [[ "$GITHUB_REF" == "refs/tags/v"* ]] && TAGS=$(echo $TAGS | sed -e 's/^v//')
+        # Expand tags: 1.2.3 -> 1 1.2 1.2.3
+        TAGS="$(echo "$TAGS" | sed -E -e 's/^((([0-9]+)\.[0-9]+)\.[0-9]+)$/\3 \2 \1/')"
+
+        for IMAGE in $PODMAN_REMOTE_IMAGE $PODMAN_IMAGE $PODMAN_MINIMAL_IMAGE; do
+          TAG_SUFFIX=$(echo $IMAGE | sed -E -e 's/^([^-]+)//')
+          LATEST_TAG="$([ "$TAG_SUFFIX" ] && echo $TAG_SUFFIX | sed -E -e 's/^-//' || echo latest)"
+          [ "$TAGS" == "master" ] && IMAGE_TAGS="$LATEST_TAG" || IMAGE_TAGS="$LATEST_TAG $TAGS"
+          TAG_OPTS=
+          printf 'Pushing image tags: '
+          for TAG in $IMAGE_TAGS; do
+            [ "$TAG" = "$LATEST_TAG" ] || TAG="${TAG}${TAG_SUFFIX}"
+            TAG_OPTS="$TAG_OPTS -t $DOCKERHUB_IMAGE_REPO:$TAG -t $GITHUB_IMAGE_REPO:$TAG"
+            printf ' %s' "$TAG"
+          done
+          echo
+          echo "Pushing $IMAGE image to $DOCKERHUB_IMAGE_REPO and $GITHUB_IMAGE_REPO"
+          make "$IMAGE" PODMAN_BUILD_OPTS="$TAG_OPTS" PODMAN_MINIMAL_BUILD_OPTS="$TAG_OPTS" PODMAN_REMOTE_BUILD_OPTS="$TAG_OPTS"
+        done
+      env:
+        BUILDX_OUTPUT: type=registry
+        PLATFORM: linux/arm64/v8,linux/amd64
+        GITHUB_REF: ${{ github.ref }}
