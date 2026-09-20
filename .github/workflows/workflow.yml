@@ -57,7 +57,7 @@ jobs:
       with:
         auto-release: false
         ignore-commits-before: a14f4b3ee9751ea232ef10b72e4923869ea8c3d7
-        github-release-draft: true
+        github-release-latest: false
         github-release-files: >
           ./build/asset/podman-linux-arm64.tar.gz.asc
           ./build/asset/podman-linux-arm64.tar.gz
