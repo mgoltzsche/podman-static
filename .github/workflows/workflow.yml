@@ -93,7 +93,7 @@ jobs:
     - name: Push images
       if: steps.release.outputs.publish
       run: |
-        set -eu
+        set -euo pipefail
 
         GITHUB_IMAGE_REPO=ghcr.io/mgoltzsche/podman
         GITHUB_IMAGE_REPO=$(echo $GITHUB_IMAGE_REPO | tr '[A-Z]' '[a-z]')
@@ -107,11 +107,13 @@ jobs:
         TAGS="$(echo "$TAGS" | sed -E -e 's/^((([0-9]+)\.[0-9]+)\.[0-9]+)$/\3 \2 \1/')"
         COMMIT_SHA="$(git rev-parse HEAD)"
 
+        echo "git commit: $COMMIT_SHA"
+
         for IMAGE in $PODMAN_REMOTE_IMAGE $PODMAN_IMAGE $PODMAN_MINIMAL_IMAGE; do
           TAG_SUFFIX=$(echo $IMAGE | sed -E -e 's/^([^-]+)//')
           LATEST_TAG="$([ "$TAG_SUFFIX" ] && echo $TAG_SUFFIX | sed -E -e 's/^-//' || echo latest)"
           IMAGE_TAGS="$TAGS"
-          if git log --format=format:%H --first-parent master | grep -q "$COMMIT_SHA"; then
+          if git log --format=format:%H --first-parent refs/remotes/origin/master | grep -Fxq "$COMMIT_SHA"; then
             [ "$TAGS" == "master" ] && IMAGE_TAGS="$LATEST_TAG" || IMAGE_TAGS="$LATEST_TAG $TAGS"
           fi
           TAG_OPTS=
