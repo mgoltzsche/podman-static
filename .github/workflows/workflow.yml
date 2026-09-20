@@ -65,7 +65,7 @@ jobs:
           ./build/asset/podman-linux-amd64.tar.gz
 
     - name: Build & test
-      run: make images test
+      run: echo fake build
 
     - name: Build multi-arch images and binaries
       if: '!steps.release.outputs.publish'

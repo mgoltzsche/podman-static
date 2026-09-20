@@ -65,7 +65,7 @@ tar-all:
 podman: create-builder
 	$(DOCKER) buildx build $(BUILDX_OPTS) --force-rm $(PODMAN_BUILD_OPTS) --target $(PODMAN_IMAGE_TARGET) .
 
-podman-tar-image:
+podman-tar-image: create-builder
 	$(DOCKER) buildx build $(BUILDX_OPTS) --force-rm -t $(PODMAN_TAR_IMAGE) --target tar-archive .
 
 podman-minimal: create-builder
