@@ -56,8 +56,7 @@ jobs:
       uses: mgoltzsche/conventional-release@v2
       with:
         auto-release: false
-        ignore-commits-before: a14f4b3ee9751ea232ef10b72e4923869ea8c3d7
-        github-release-draft: true
+        ignore-commits-before: 27a5084275c930f02a68db9dd902f3fe4e9bab0f
         github-release-files: >
           ./build/asset/podman-linux-arm64.tar.gz.asc
           ./build/asset/podman-linux-arm64.tar.gz
