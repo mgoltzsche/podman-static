@@ -18,7 +18,7 @@ RUN apk add --update --no-cache git make musl-dev
 
 # runc
 FROM golangbuildbase AS runc
-ARG RUNC_VERSION=v1.5.1
+ARG RUNC_VERSION=v1.5.2
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc
 WORKDIR $GOPATH/src/github.com/opencontainers/runc
 RUN set -eux; \
@@ -31,7 +31,7 @@ RUN set -eux; \
 # podman (without systemd support)
 FROM golangbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v6.1.2
+ARG PODMAN_VERSION=v6.1.3
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/podman-container-tools/podman src/github.com/containers/podman
@@ -107,12 +107,9 @@ RUN cargo build --release
 FROM golangbuildbase AS passt
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-ARG PASST_VERSION=2026_07_28.f8df3f1
+ARG PASST_VERSION=2026_09_25.df90211
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION https://passt.top/passt
-# backport linux_dep.h include for close_range (upstream commit defc25b, fixed after 2026_07_28)
-COPY patches/passt-2026_07_28-linux_dep-include.patch /tmp/passt-linux_dep-include.patch
 WORKDIR /passt
-RUN git apply /tmp/passt-linux_dep-include.patch
 RUN set -ex; \
 	make static; \
 	mkdir bin; \
@@ -161,7 +158,7 @@ RUN set -ex; \
 # crun
 FROM golangbuildbase AS crun
 RUN apk add --update --no-cache autoconf automake argp-standalone libtool libcap-dev libcap-static json-c-dev
-ARG CRUN_VERSION=1.29.1
+ARG CRUN_VERSION=1.30.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${CRUN_VERSION} https://github.com/containers/crun src/github.com/containers/crun
 WORKDIR $GOPATH/src/github.com/containers/crun
 RUN set -ex; \
