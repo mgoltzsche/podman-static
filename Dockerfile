@@ -107,7 +107,7 @@ RUN cargo build --release
 FROM golangbuildbase AS passt
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-ARG PASST_VERSION=2026_09_25.df90211
+ARG PASST_VERSION=2026_10_02.cba3570
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION https://passt.top/passt
 WORKDIR /passt
 RUN set -ex; \
