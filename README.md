@@ -26,15 +26,25 @@ The following image tags are supported:
 By default containers are run as user `root`.
 However the `podman` (uid/gid 1000) user can be used instead for which also a subuid/gid mapping is configured with the image (as described within the binary installation section below).  
 
-Please note that, when running non-remote podman within a docker container, the docker container needs to be `--privileged`.
+Please note that, when running non-remote podman within another container, the parent container needs to be run with `--device=/dev/fuse`.
 
-### Container usage example
+### Container usage examples
 
-Run podman in docker:
+Run podman in docker (or podman):
 ```sh
-docker run --privileged -u podman:podman mgoltzsche/podman:minimal docker run alpine:latest echo hello from nested container
+docker run --device=/dev/fuse -u podman:podman mgoltzsche/podman:minimal docker run alpine:latest echo hello from nested container
 ```
 _Within the container `docker` is linked to `podman` to support applications that use the `docker` command._
+
+To allow the container to write to a shared volume using your host UID, add the `--userns=keep-id` option.
+
+To be able to build images within a nested container, mount a volume at the storage directory, e.g. `--tmpfs /podman/.local/share/containers/storage:mode=1777`.
+(This is because fuse-overlayfs file systems cannot be nested.)
+
+If you want the nested containers to run with stronger isolation, you must use the regular (non-minimal) podman image and sacrifice the outer container's isolation by running it in `--privileged` mode:
+```sh
+docker run --privileged -u podman:podman mgoltzsche/podman:latest docker run alpine:latest echo hello from nested container
+```
 
 ## Binary installation on a host
 
@@ -51,7 +61,6 @@ curl -fsSL -o podman-linux-amd64.tar.gz.asc https://github.com/mgoltzsche/podman
 gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 0CCF102C4F95D89E583FF1D4F8B5AF50344BB503
 gpg --batch --verify podman-linux-amd64.tar.gz.asc podman-linux-amd64.tar.gz
 ```
-_This may fail every now and then due to desync/unavailable key servers. In that case please retry._  
 
 Download a specific version:
 ```sh
@@ -65,7 +74,7 @@ tar -xzf podman-linux-amd64.tar.gz
 sudo cp -r podman-linux-amd64/usr podman-linux-amd64/etc /
 ```
 
-_If you have docker installed on the same host it might be broken until you remove the newly installed `/usr/local/bin/runc` binary since older docker versions are not compatible with the latest runc version provided here while podman is also compatible with the older runc version that comes e.g. with docker 1.19 on Ubuntu._
+_If you have docker installed on the same host it might be broken until you remove the newly installed `/usr/local/bin/runc` binary since older docker versions may not be compatible with the latest runc version provided here._
 
 To install podman on a host without having any root privileges, you need to copy the binaries and configuration into your home directory and adjust the binary paths within the configuration correspondingly.
 For more information see [podman's rootless installation instructions](https://github.com/podman-container-tools/podman/blob/main/docs/tutorials/rootless_tutorial.md).
