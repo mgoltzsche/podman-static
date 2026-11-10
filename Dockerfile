@@ -12,7 +12,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	bash go-md2man
 
 
-FROM rust:1.98-alpine3.24 AS rustbase
+FROM rust:1.99-alpine3.24 AS rustbase
 RUN apk add --update --no-cache git make musl-dev
 
 
@@ -31,7 +31,7 @@ RUN set -eux; \
 # podman (without systemd support)
 FROM golangbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
-ARG PODMAN_VERSION=v6.1.4
+ARG PODMAN_VERSION=v6.2.0
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${PODMAN_VERSION} https://github.com/podman-container-tools/podman src/github.com/containers/podman
