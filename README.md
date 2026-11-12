@@ -20,7 +20,7 @@ The following image tags are supported:
 | Tag | Description |
 | --- | ----------- |
 | `latest`, `<VERSION>` | podman with all dependencies: runc, crun, conmon, fuse-overlayfs, netavark, pasta, aardvark-dns, catatonit. |
-| `minimal`, `<VERSION>-minimal` | podman, crun, conmon, fuse-overlayfs and netavark binaries, configured to use the host's existing namespaces (low isolation level). |
+| `minimal`, `<VERSION>-minimal` | podman, crun, conmon, fuse-overlayfs and netavark binaries, configured to use the host's existing namespaces (low isolation level; ideal to run nested containers, e.g. within CI pipelines). |
 | `remote`, `<VERSION>-remote` | the podman remote binary. |
 
 By default containers are run as user `root`.
